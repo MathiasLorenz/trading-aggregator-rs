@@ -1,0 +1,19 @@
+version: "3"
+
+env:
+  SERVICE_NAME: "trading-results-rs"
+  DEV_LOCAL_TAG: "dev-env"
+
+tasks:
+  build-docker-local:
+    cmds:
+      - docker build -t "$SERVICE_NAME:$DEV_LOCAL_TAG" .
+
+  run-docker-local:
+    deps: [build-docker-local]
+    cmds:
+      - docker run --rm -t "$SERVICE_NAME:$DEV_LOCAL_TAG"
+
+  run-docker-local-shell:
+    cmds:
+      - docker run --rm -it --entrypoint /bin/bash "$SERVICE_NAME:$DEV_LOCAL_TAG"
