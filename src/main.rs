@@ -6,6 +6,9 @@ use time::macros::{date, offset, time};
 use time::{Duration, OffsetDateTime};
 
 fn main() {
+    // I think I'll have to swap 'time' for 'chrono' as the 'chrono-tz' crate looks very cool for handling timezones
+    // more properly, which I'll have to...
+
     let area = Area::DK1;
     let counter_part = CounterPart::Nordpool;
     let delivery_start =
