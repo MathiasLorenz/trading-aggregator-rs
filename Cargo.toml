@@ -6,4 +6,9 @@ edition = "2021"
 [dependencies]
 rust_decimal = "1.36.0"
 serde = { version = "1.0.210", features = ["derive"] }
-time = { version = "0.3.36", features = ["std", "parsing", "serde"] }
+time = { version = "0.3.36", features = ["std", "parsing", "serde", "macros"] }
+sqlx = { version = "0.8", features = [
+    "runtime-tokio",
+    "tls-rustls-ring",
+    "postgres",
+] }
