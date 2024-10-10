@@ -17,3 +17,15 @@ tasks:
   run-docker-local-shell:
     cmds:
       - docker run --rm -it --entrypoint /bin/bash "$SERVICE_NAME:$DEV_LOCAL_TAG"
+
+  start-db:
+    cmds:
+      - docker run --rm --name postgres -p 5432:5432 -e POSTGRES_DB=postgres -e POSTGRES_USER=superuser -e POSTGRES_PASSWORD=complicated postgres:15.7-alpine
+
+  restore-db:
+    cmds:
+      - pg_restore --no-owner -h localhost -U superuser -d postgres db-dumps/trading-results-prod-2024-10-10.dump
+
+  psql-shell:
+    cmds:
+      - psql -h localhost -U superuser postgres
