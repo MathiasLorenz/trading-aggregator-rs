@@ -8,10 +8,13 @@ rust_decimal = "1.36.0"
 serde = { version = "1.0.210", features = ["derive"] }
 time = { version = "0.3.36", features = ["std", "parsing", "serde", "macros"] }
 sqlx = { version = "0.8", features = [
-    "runtime-tokio",
-    "tls-rustls-ring",
+    "runtime-tokio-rustls",
+    "rust_decimal",
     "postgres",
+    "time",                 # Remember to change with chrono if I do that
 ] }
 tokio = { version = "1.40.0", features = ["full"] }
 dotenvy = "0.15.7"
 anyhow = "1.0.89"
+strum = "0.26.3"
+strum_macros = "0.26.4"
