@@ -76,20 +76,19 @@ async fn main() -> Result<()> {
 
     println!("Getting from db");
 
-    let db_trade = sqlx::query_as!(
+    let trades = sqlx::query_as!(
         Trade,
         "
     SELECT *
     FROM intraday_trades"
     )
-    .fetch_one(&pool)
+    .fetch_all(&pool)
     .await?;
 
-    // let conn = pool.acquire().await?;
-    // let mut stream =
-    //     sqlx::query_as::<_, Trade>("SELECT * FROM trades LIMIT 1").fetch_one(&mut conn);
-
-    println!("My trade from the database is: {:?}", db_trade);
+    println!(
+        "Number of intraday trades from the database is: {:?}",
+        trades.len()
+    );
 
     println!("Done :)");
     Ok(())
