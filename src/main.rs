@@ -2,10 +2,12 @@ use std::str::FromStr;
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgPoolOptions;
 use time::macros::{date, offset, time};
 use time::{Duration, OffsetDateTime};
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), sqlx::Error> {
     // I think I'll have to swap 'time' for 'chrono' as the 'chrono-tz' crate looks very cool for handling timezones
     // more properly, which I'll have to...
 
@@ -22,7 +24,7 @@ fn main() {
     let label = Some("sup".to_string());
     let execution_time = Some(OffsetDateTime::new_in_offset(
         date!(2024 - 09 - 01),
-        time!(20:00:00),
+        time!(20:00:01),
         offset!(UTC),
     ));
 
@@ -40,7 +42,33 @@ fn main() {
         execution_time,
     };
 
-    println!("My trade is: {:?}", trade)
+    println!("My trade is: {:?}", trade);
+
+    println!("Initialising sqlx ...");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect("postgres://superuser:complicated@localhost/postgres")
+        .await?;
+
+    // let db_trade = sqlx::query_as!(
+    //     Trade,
+    //     "
+    // SELECT *
+    // FROM intraday_trades"
+    // )
+    // .fetch_one(&pool) // -> Vec<Trade>
+    // .await?;
+
+    let conn = pool.acquire().await?;
+
+    let mut stream =
+        sqlx::query_as::<_, Trade>("SELECT * FROM trades LIMIT 1").fetch_one(&mut conn);
+
+    println!("My trade from the database is: {:?}", db_trade);
+
+    println!("Done :)");
+    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -95,7 +123,7 @@ enum Currency {
     Gbp,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, Debug, Serialize, Deserialize)]
 struct Trade {
     area: Area,
     counter_part: CounterPart,
