@@ -1,10 +1,12 @@
 use std::env;
 use std::str::FromStr;
+use std::time::Instant;
 
 use anyhow::Result;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 use strum_macros::{AsRefStr, EnumString};
 use time::macros::{date, offset, time};
 use time::{Duration, OffsetDateTime};
@@ -76,14 +78,12 @@ async fn main() -> Result<()> {
 
     println!("Getting from db");
 
-    let trades = sqlx::query_as!(
-        Trade,
-        "
-    SELECT *
-    FROM intraday_trades"
-    )
-    .fetch_all(&pool)
-    .await?;
+    let now = Instant::now();
+
+    let trades = get_trades(&pool).await?;
+
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.2?}", elapsed);
 
     println!(
         "Number of intraday trades from the database is: {:?}",
@@ -92,6 +92,19 @@ async fn main() -> Result<()> {
 
     println!("Done :)");
     Ok(())
+}
+
+async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
+    let trades = sqlx::query_as!(
+        Trade,
+        "
+    SELECT *
+    FROM intraday_trades"
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(trades)
 }
 
 #[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr)]
