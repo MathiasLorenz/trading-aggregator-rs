@@ -22,26 +22,10 @@ async fn main() -> Result<()> {
     let delivery_start =
         OffsetDateTime::new_in_offset(date!(2024 - 09 - 02), time!(00:00:00), offset!(UTC));
     let delivery_end = delivery_start + Duration::DAY;
-    let price = Decimal::from_str("242.2").unwrap();
+    let price = Some(Decimal::from_str("242.2").unwrap());
     let quantity_mwh = Decimal::from_str("23.1").unwrap();
     let trade_side = TradeSide::Buy;
     let trade_type = TradeType::Intraday;
-    // let currency = Currency::Eur;
-    let contract_id = "23".to_string();
-    let portfolio_id = "3434".to_string();
-    let trade_id = "df".to_string();
-    let order_id = Some("some id".to_string());
-    let insertion_time = Some(OffsetDateTime::new_in_offset(
-        date!(2024 - 09 - 02),
-        time!(20:00:01),
-        offset!(UTC),
-    ));
-    let label = Some("sup".to_string());
-    let execution_time = Some(OffsetDateTime::new_in_offset(
-        date!(2024 - 09 - 02),
-        time!(20:00:01),
-        offset!(UTC),
-    ));
 
     let trade = Trade {
         id,
@@ -53,14 +37,6 @@ async fn main() -> Result<()> {
         quantity_mwh,
         trade_side,
         trade_type,
-        // currency,
-        contract_id,
-        portfolio_id,
-        trade_id,
-        order_id,
-        label,
-        execution_time,
-        insertion_time,
     };
 
     println!("My trade is: {:?}", trade);
@@ -85,24 +61,41 @@ async fn main() -> Result<()> {
     let elapsed = now.elapsed();
     println!("Elapsed: {:.2?}", elapsed);
 
-    println!(
-        "Number of intraday trades from the database is: {:?}",
-        trades.len()
-    );
+    println!("Number of trades from the database is: {:?}", trades.len());
 
     println!("Done :)");
     Ok(())
 }
 
 async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
-    let trades = sqlx::query_as!(
+    let mut trades = sqlx::query_as!(
         Trade,
         "
-    SELECT *
+    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
     FROM intraday_trades"
     )
     .fetch_all(pool)
     .await?;
+
+    let auction_trades = sqlx::query_as!(
+        Trade,
+        "
+    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
+    FROM auction_trades"
+    )
+    .fetch_all(pool)
+    .await?;
+    trades.extend(auction_trades);
+
+    let imbalance_trades = sqlx::query_as!(
+        Trade,
+        "
+    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
+    FROM imbalance_trades"
+    )
+    .fetch_all(pool)
+    .await?;
+    trades.extend(imbalance_trades);
 
     Ok(trades)
 }
@@ -160,7 +153,7 @@ impl From<String> for TradeSide {
 }
 
 #[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr)]
-#[strum(serialize_all = "lowercase")]
+#[strum(serialize_all = "snake_case")]
 enum TradeType {
     Intraday,
     Imbalance,
@@ -180,12 +173,6 @@ impl From<String> for TradeType {
     }
 }
 
-// #[derive(Debug, Serialize, Deserialize)]
-// enum Currency {
-//     Eur,
-//     Gbp,
-// }
-
 #[derive(Debug, Serialize, Deserialize)]
 struct Trade {
     id: i32,
@@ -193,18 +180,10 @@ struct Trade {
     counter_part: CounterPart,
     delivery_end: OffsetDateTime,
     delivery_start: OffsetDateTime,
-    price: Decimal,
+    price: Option<Decimal>,
     quantity_mwh: Decimal,
     #[serde(rename = "side")]
     trade_side: TradeSide,
     #[serde(rename = "type")]
     trade_type: TradeType,
-    // currency: Currency,
-    contract_id: String,
-    portfolio_id: String,
-    trade_id: String,
-    order_id: Option<String>,
-    label: Option<String>,
-    execution_time: Option<OffsetDateTime>,
-    insertion_time: Option<OffsetDateTime>,
 }
