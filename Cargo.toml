@@ -12,3 +12,4 @@ sqlx = { version = "0.8", features = [
     "tls-rustls-ring",
     "postgres",
 ] }
+tokio = { version = "1.40.0", features = ["full"] }
