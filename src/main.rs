@@ -29,20 +29,21 @@ async fn main() -> Result<()> {
         .connect(&db_url)
         .await?;
 
+    let delivery_from =
+        OffsetDateTime::new_in_offset(date!(2024 - 10 - 01), time!(22:00:00), offset!(UTC));
+    let delivery_to =
+        OffsetDateTime::new_in_offset(date!(2024 - 10 - 04), time!(22:00:00), offset!(UTC));
+
     println!("Getting from db");
 
     let now = Instant::now();
 
-    let trades = get_trades(&pool).await?;
+    let trades = get_trades(&pool, &delivery_from, &delivery_to).await?;
 
     let elapsed = now.elapsed();
     println!("Elapsed: {:.2?}", elapsed);
 
     println!("Creating report");
-    let delivery_from =
-        OffsetDateTime::new_in_offset(date!(2024 - 10 - 01), time!(22:00:00), offset!(UTC));
-    let delivery_to =
-        OffsetDateTime::new_in_offset(date!(2024 - 10 - 02), time!(22:00:00), offset!(UTC));
 
     let now = Instant::now();
     let report = Report::new(delivery_from, delivery_to, trades)?;
@@ -58,12 +59,19 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
+async fn get_trades(
+    pool: &PgPool,
+    delivery_from: &OffsetDateTime,
+    delivery_to: &OffsetDateTime,
+) -> Result<Vec<Trade>> {
     let mut trades = sqlx::query_as!(
         Trade,
         "
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
-    FROM intraday_trades"
+    FROM intraday_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
     )
         .fetch_all(pool)
         .await?;
@@ -72,7 +80,10 @@ async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
         Trade,
         "
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
-    FROM auction_trades"
+    FROM auction_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
     )
         .fetch_all(pool)
         .await?;
@@ -82,7 +93,10 @@ async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
         Trade,
         "
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
-    FROM imbalance_trades"
+    FROM imbalance_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
     )
         .fetch_all(pool)
         .await?;

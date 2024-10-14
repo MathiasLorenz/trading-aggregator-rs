@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type\n    FROM auction_trades",
+  "query": "\n    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type\n    FROM imbalance_trades\n    WHERE delivery_start >= $1 AND delivery_start < $2",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,10 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
     },
     "nullable": [
       false,
@@ -58,11 +61,11 @@
       false,
       false,
       false,
-      false,
+      true,
       false,
       false,
       false
     ]
   },
-  "hash": "8a7d29ed3452f9e0fb67312278987031ccb5b9fe9ac78b8055db0d1a3681015c"
+  "hash": "3be5f8e572ccd178db3cdce6e7fd43cab2d81d467b3c6a677db2bef85c0125c7"
 }
