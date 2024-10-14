@@ -20,7 +20,7 @@ tasks:
 
   start-db:
     cmds:
-      - docker run --rm --name postgres -p 5432:5432 -e POSTGRES_DB=postgres -e POSTGRES_USER=superuser -e POSTGRES_PASSWORD=complicated postgres:17.0-alpine
+      - docker run --rm --name postgres -p 5432:5432 -e POSTGRES_DB=postgres -e POSTGRES_USER=superuser -e POSTGRES_PASSWORD=complicated postgres:15.7-alpine
 
   restore-db:
     cmds:
