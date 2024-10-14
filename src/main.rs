@@ -115,12 +115,19 @@ impl Report {
         trades: Vec<Trade>,
     ) -> Result<Self> {
         if delivery_to > delivery_from {
-            return bail!("delivery_from has to be before delivery_to");
+            bail!("delivery_from has to be before delivery_to");
         }
 
-        // Instead of grouping first and then creating each area, I think it will be easier
-        // to just iterate over trades and plob them directly into the hashmap where they belong.
-        let areas = HashMap::new();
+        let mut areas = HashMap::new();
+
+        for trade in trades.iter() {
+            let area = trade.area;
+            areas
+                .entry(area)
+                .or_insert(ReportEntry::new(area))
+                .add_trade(trade)?;
+        }
+
         let report = Report {
             delivery_from,
             delivery_to,
@@ -133,36 +140,61 @@ impl Report {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ReportEntry {
+    area: Area,
     mw: HashMap<(TradeSide, Market), Decimal>,
     cash_flow: HashMap<(TradeSide, Market), Decimal>,
 }
 
 impl ReportEntry {
-    // Todo: Take in iterator
-    fn new(trades: Vec<Trade>) -> Result<Self> {
-        let mut mw = HashMap::new();
-        let mut cash_flow = HashMap::new();
+    fn new(area: Area) -> Self {
+        Self {
+            area,
+            mw: HashMap::new(),
+            cash_flow: HashMap::new(),
+        }
+    }
 
-        for trade in trades.iter().filter(|trade| !trade.price.is_none()) {
-            let trade_side = trade.trade_side;
-            let market = Market::from(trade.trade_type);
-            let contract_length = Decimal::from_str("1.0").unwrap(); // Todo, fix
-
-            let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
-
-            *mw.entry((trade_side, market))
-                .or_insert(Decimal::from_str("0.0").unwrap()) += abs_length_adjusted_quantity;
-            *cash_flow
-                .entry((trade_side, market))
-                .or_insert(Decimal::from_str("0.0").unwrap()) +=
-                abs_length_adjusted_quantity * trade.price.unwrap(); // We have already filtered on None price
+    fn add_trade(&mut self, trade: &Trade) -> Result<()> {
+        if trade.area != self.area {
+            bail!("Trade area has to match ReportEntry area");
+        }
+        if trade.price.is_none() {
+            return Ok(());
         }
 
-        return Ok(ReportEntry { mw, cash_flow });
+        let trade_side = trade.trade_side;
+        let market = Market::from(trade.trade_type);
+        let contract_length = Decimal::from_str("1.0")?; // Todo, fix
+
+        let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
+
+        *self
+            .mw
+            .entry((trade_side, market))
+            .or_insert(Decimal::from_str("0.0").unwrap()) += abs_length_adjusted_quantity;
+        *self
+            .cash_flow
+            .entry((trade_side, market))
+            .or_insert(Decimal::from_str("0.0").unwrap()) +=
+            abs_length_adjusted_quantity * trade.price.unwrap();
+
+        Ok(())
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr, Hash, PartialEq, PartialOrd, Eq)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    EnumString,
+    AsRefStr,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Clone,
+    Copy,
+)]
 #[strum(serialize_all = "UPPERCASE")]
 enum Area {
     AMP,
