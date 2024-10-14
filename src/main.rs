@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
     let trade_side = TradeSide::Buy;
     let trade_type = TradeType::Intraday;
 
-    let trade = Trade {
+    let _trade = Trade {
         id,
         area,
         counter_part,
@@ -40,8 +40,6 @@ async fn main() -> Result<()> {
         trade_side,
         trade_type,
     };
-
-    println!("My trade is: {:?}", trade);
 
     // Load environment variables from .env
     dotenvy::dotenv()?;
