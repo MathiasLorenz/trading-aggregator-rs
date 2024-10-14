@@ -73,7 +73,7 @@ async fn main() -> Result<()> {
     let report = Report::new(delivery_from, delivery_to, trades)?;
     println!("Elapsed: {:.2?}", now.elapsed());
 
-    println!("Report: {:#?}", report);
+    // println!("Report: {:#?}", report);
 
     println!("Done :)");
     Ok(())
@@ -169,9 +169,9 @@ impl ReportEntry {
         if trade.area != self.area {
             bail!("Trade area has to match ReportEntry area");
         }
-        if trade.price.is_none() {
+        let Some(trade_price) = trade.price else {
             return Ok(());
-        }
+        };
 
         let trade_side = trade.trade_side;
         let market = Market::from(trade.trade_type);
@@ -182,12 +182,11 @@ impl ReportEntry {
         *self
             .mw
             .entry((trade_side, market))
-            .or_insert(Decimal::from_str("0.0").unwrap()) += abs_length_adjusted_quantity;
+            .or_insert(Decimal::from_str("0.0")?) += abs_length_adjusted_quantity;
         *self
             .cash_flow
             .entry((trade_side, market))
-            .or_insert(Decimal::from_str("0.0").unwrap()) +=
-            abs_length_adjusted_quantity * trade.price.unwrap();
+            .or_insert(Decimal::from_str("0.0")?) += abs_length_adjusted_quantity * trade_price;
 
         Ok(())
     }
