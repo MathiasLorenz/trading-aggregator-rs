@@ -40,15 +40,19 @@ async fn main() -> Result<()> {
 
     println!("Creating report");
     let delivery_from =
-        OffsetDateTime::new_in_offset(date!(2024 - 01 - 01), time!(00:00:00), offset!(UTC));
+        OffsetDateTime::new_in_offset(date!(2024 - 10 - 01), time!(22:00:00), offset!(UTC));
     let delivery_to =
-        OffsetDateTime::new_in_offset(date!(2024 - 11 - 01), time!(00:00:00), offset!(UTC));
+        OffsetDateTime::new_in_offset(date!(2024 - 10 - 02), time!(22:00:00), offset!(UTC));
 
     let now = Instant::now();
-    let _report = Report::new(delivery_from, delivery_to, trades)?;
+    let report = Report::new(delivery_from, delivery_to, trades)?;
     println!("Elapsed: {:.2?}", now.elapsed());
 
-    // println!("Report: {:#?}", report);
+    println!("Total revenue: {:#?}", report.revenue(None, None));
+    println!("Total costs: {:#?}", report.costs(None, None));
+    println!("Total mw sold: {:#?}", report.mw_sold(None, None));
+    println!("Total mw bought: {:#?}", report.mw_bought(None, None));
+    println!("Total gross profit: {:#?}", report.gross_profit(None, None));
 
     println!("Done :)");
     Ok(())
@@ -122,6 +126,81 @@ impl Report {
 
         Ok(report)
     }
+
+    fn revenue(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
+        let summed: Decimal;
+
+        if let Some(area) = area {
+            if !self.areas.contains_key(&area) {
+                return Decimal::ZERO;
+            }
+            summed = self.areas.get(&area).unwrap().revenue(market);
+        } else {
+            summed = self.areas.values().map(|f| f.revenue(market)).sum();
+        }
+
+        summed
+    }
+
+    fn costs(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
+        let summed: Decimal;
+
+        if let Some(area) = area {
+            if !self.areas.contains_key(&area) {
+                return Decimal::ZERO;
+            }
+            summed = self.areas.get(&area).unwrap().costs(market);
+        } else {
+            summed = self.areas.values().map(|f| f.costs(market)).sum();
+        }
+
+        summed
+    }
+
+    fn mw_sold(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
+        let summed: Decimal;
+
+        if let Some(area) = area {
+            if !self.areas.contains_key(&area) {
+                return Decimal::ZERO;
+            }
+            summed = self.areas.get(&area).unwrap().mw_sold(market);
+        } else {
+            summed = self.areas.values().map(|f| f.mw_sold(market)).sum();
+        }
+
+        summed
+    }
+
+    fn mw_bought(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
+        let summed: Decimal;
+
+        if let Some(area) = area {
+            if !self.areas.contains_key(&area) {
+                return Decimal::ZERO;
+            }
+            summed = self.areas.get(&area).unwrap().mw_bought(market);
+        } else {
+            summed = self.areas.values().map(|f| f.mw_bought(market)).sum();
+        }
+
+        summed
+    }
+
+    fn gross_profit(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
+        let summed: Decimal;
+
+        if let Some(area) = area {
+            if !self.areas.contains_key(&area) {
+                return Decimal::ZERO;
+            }
+            summed = self.areas.get(&area).unwrap().gross_profit(market);
+        } else {
+            summed = self.areas.values().map(|f| f.gross_profit(market)).sum();
+        }
+
+        summed
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -164,6 +243,86 @@ impl ReportEntry {
             .or_insert(Decimal::from_str("0.0")?) += abs_length_adjusted_quantity * trade_price;
 
         Ok(())
+    }
+
+    fn revenue(&self, market: Option<Market>) -> Decimal {
+        if let Some(market) = market {
+            return *self.cash_flow.get(&(TradeSide::Sell, market)).unwrap();
+        }
+
+        *self
+            .cash_flow
+            .get(&(TradeSide::Sell, Market::Auction))
+            .unwrap_or(&Decimal::ZERO)
+            + *self
+                .cash_flow
+                .get(&(TradeSide::Sell, Market::Imbalance))
+                .unwrap_or(&Decimal::ZERO)
+            + *self
+                .cash_flow
+                .get(&(TradeSide::Sell, Market::Intraday))
+                .unwrap_or(&Decimal::ZERO)
+    }
+
+    fn costs(&self, market: Option<Market>) -> Decimal {
+        if let Some(market) = market {
+            return *self.cash_flow.get(&(TradeSide::Buy, market)).unwrap();
+        }
+
+        *self
+            .cash_flow
+            .get(&(TradeSide::Buy, Market::Auction))
+            .unwrap_or(&Decimal::ZERO)
+            + *self
+                .cash_flow
+                .get(&(TradeSide::Buy, Market::Imbalance))
+                .unwrap_or(&Decimal::ZERO)
+            + *self
+                .cash_flow
+                .get(&(TradeSide::Buy, Market::Intraday))
+                .unwrap_or(&Decimal::ZERO)
+    }
+
+    fn mw_sold(&self, market: Option<Market>) -> Decimal {
+        if let Some(market) = market {
+            return *self.mw.get(&(TradeSide::Sell, market)).unwrap();
+        }
+
+        *self
+            .mw
+            .get(&(TradeSide::Sell, Market::Auction))
+            .unwrap_or(&Decimal::ZERO)
+            + *self
+                .mw
+                .get(&(TradeSide::Sell, Market::Imbalance))
+                .unwrap_or(&Decimal::ZERO)
+            + *self
+                .mw
+                .get(&(TradeSide::Sell, Market::Intraday))
+                .unwrap_or(&Decimal::ZERO)
+    }
+
+    fn mw_bought(&self, market: Option<Market>) -> Decimal {
+        if let Some(market) = market {
+            return *self.mw.get(&(TradeSide::Buy, market)).unwrap();
+        }
+
+        *self
+            .mw
+            .get(&(TradeSide::Buy, Market::Auction))
+            .unwrap_or(&Decimal::ZERO)
+            + *self
+                .mw
+                .get(&(TradeSide::Buy, Market::Imbalance))
+                .unwrap_or(&Decimal::ZERO)
+            + *self
+                .mw
+                .get(&(TradeSide::Buy, Market::Intraday))
+                .unwrap_or(&Decimal::ZERO)
+    }
+
+    fn gross_profit(&self, market: Option<Market>) -> Decimal {
+        self.revenue(market) - self.costs(market)
     }
 }
 
