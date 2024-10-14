@@ -3,7 +3,8 @@ use std::env;
 use std::str::FromStr;
 use std::time::Instant;
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
+use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
@@ -62,7 +63,17 @@ async fn main() -> Result<()> {
     let elapsed = now.elapsed();
     println!("Elapsed: {:.2?}", elapsed);
 
-    println!("Number of trades from the database is: {:?}", trades.len());
+    println!("Creating report");
+    let delivery_from =
+        OffsetDateTime::new_in_offset(date!(2024 - 01 - 01), time!(00:00:00), offset!(UTC));
+    let delivery_to =
+        OffsetDateTime::new_in_offset(date!(2024 - 11 - 01), time!(00:00:00), offset!(UTC));
+
+    let now = Instant::now();
+    let report = Report::new(delivery_from, delivery_to, trades)?;
+    println!("Elapsed: {:.2?}", now.elapsed());
+
+    println!("Report: {:#?}", report);
 
     println!("Done :)");
     Ok(())
@@ -114,7 +125,7 @@ impl Report {
         delivery_to: OffsetDateTime,
         trades: Vec<Trade>,
     ) -> Result<Self> {
-        if delivery_to > delivery_from {
+        if delivery_to < delivery_from {
             bail!("delivery_from has to be before delivery_to");
         }
 
@@ -164,7 +175,7 @@ impl ReportEntry {
 
         let trade_side = trade.trade_side;
         let market = Market::from(trade.trade_type);
-        let contract_length = Decimal::from_str("1.0")?; // Todo, fix
+        let contract_length = contract_length(&trade.delivery_start, &trade.delivery_end)?;
 
         let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
 
@@ -180,6 +191,23 @@ impl ReportEntry {
 
         Ok(())
     }
+}
+
+fn contract_length(
+    delivery_start: &OffsetDateTime,
+    delivery_end: &OffsetDateTime,
+) -> Result<Decimal> {
+    // Todo: This probably won't work when summer/winter changes over the duration :sad-panda:
+    // This has to be fixed.
+    let duration = *delivery_end - *delivery_start;
+
+    let delta_seconds = Decimal::from_i64(duration.whole_seconds())
+        .ok_or(anyhow!("Could not convert duration to seconds"))?;
+    let seconds_per_hour = Decimal::from_str_exact("3600.0")?;
+
+    let contract_length = delta_seconds / seconds_per_hour;
+
+    Ok(contract_length)
 }
 
 #[derive(
