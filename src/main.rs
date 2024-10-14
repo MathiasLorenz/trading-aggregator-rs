@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use std::env;
 use std::str::FromStr;
 use std::time::Instant;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
@@ -74,8 +75,8 @@ async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
     FROM intraday_trades"
     )
-    .fetch_all(pool)
-    .await?;
+        .fetch_all(pool)
+        .await?;
 
     let auction_trades = sqlx::query_as!(
         Trade,
@@ -83,8 +84,8 @@ async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
     FROM auction_trades"
     )
-    .fetch_all(pool)
-    .await?;
+        .fetch_all(pool)
+        .await?;
     trades.extend(auction_trades);
 
     let imbalance_trades = sqlx::query_as!(
@@ -93,15 +94,76 @@ async fn get_trades(pool: &PgPool) -> Result<Vec<Trade>> {
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
     FROM imbalance_trades"
     )
-    .fetch_all(pool)
-    .await?;
+        .fetch_all(pool)
+        .await?;
     trades.extend(imbalance_trades);
 
     Ok(trades)
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr)]
-#[strum(serialize_all = "UPPERCASE")] // Optional: Define how the strings should be serialized
+#[derive(Debug, Serialize, Deserialize)]
+struct Report {
+    delivery_from: OffsetDateTime,
+    delivery_to: OffsetDateTime,
+    areas: HashMap<Area, ReportEntry>,
+}
+
+impl Report {
+    fn new(
+        delivery_from: OffsetDateTime,
+        delivery_to: OffsetDateTime,
+        trades: Vec<Trade>,
+    ) -> Result<Self> {
+        if delivery_to > delivery_from {
+            return bail!("delivery_from has to be before delivery_to");
+        }
+
+        // Instead of grouping first and then creating each area, I think it will be easier
+        // to just iterate over trades and plob them directly into the hashmap where they belong.
+        let areas = HashMap::new();
+        let report = Report {
+            delivery_from,
+            delivery_to,
+            areas,
+        };
+
+        Ok(report)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ReportEntry {
+    mw: HashMap<(TradeSide, Market), Decimal>,
+    cash_flow: HashMap<(TradeSide, Market), Decimal>,
+}
+
+impl ReportEntry {
+    // Todo: Take in iterator
+    fn new(trades: Vec<Trade>) -> Result<Self> {
+        let mut mw = HashMap::new();
+        let mut cash_flow = HashMap::new();
+
+        for trade in trades.iter().filter(|trade| !trade.price.is_none()) {
+            let trade_side = trade.trade_side;
+            let market = Market::from(trade.trade_type);
+            let contract_length = Decimal::from_str("1.0").unwrap(); // Todo, fix
+
+            let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
+
+            *mw.entry((trade_side, market))
+                .or_insert(Decimal::from_str("0.0").unwrap()) += abs_length_adjusted_quantity;
+            *cash_flow
+                .entry((trade_side, market))
+                .or_insert(Decimal::from_str("0.0").unwrap()) +=
+                abs_length_adjusted_quantity * trade.price.unwrap(); // We have already filtered on None price
+        }
+
+        return Ok(ReportEntry { mw, cash_flow });
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr, Hash, PartialEq, PartialOrd, Eq)]
+#[strum(serialize_all = "UPPERCASE")]
 enum Area {
     AMP,
     DK1,
@@ -139,7 +201,19 @@ impl From<String> for CounterPart {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    EnumString,
+    AsRefStr,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Copy,
+    Clone,
+)]
 #[strum(serialize_all = "lowercase")]
 enum TradeSide {
     Buy,
@@ -152,7 +226,7 @@ impl From<String> for TradeSide {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr)]
+#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr, Clone, Copy)]
 #[strum(serialize_all = "snake_case")]
 enum TradeType {
     Intraday,
@@ -165,6 +239,43 @@ enum TradeType {
     AuctionEurId1H,
     AuctionEurId2H,
     AuctionEurId3H,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    EnumString,
+    AsRefStr,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Clone,
+    Copy,
+)]
+#[strum(serialize_all = "lowercase")]
+enum Market {
+    Auction,
+    Intraday,
+    Imbalance,
+}
+
+impl From<TradeType> for Market {
+    fn from(value: TradeType) -> Self {
+        return match value {
+            TradeType::Intraday => Self::Intraday,
+            TradeType::Imbalance => Self::Imbalance,
+            TradeType::AuctionGbDahH => Self::Auction,
+            TradeType::AuctionGbDahHh => Self::Auction,
+            TradeType::AuctionGbId1Hh => Self::Auction,
+            TradeType::AuctionGbId2Hh => Self::Auction,
+            TradeType::AuctionEurDahH => Self::Auction,
+            TradeType::AuctionEurId1H => Self::Auction,
+            TradeType::AuctionEurId2H => Self::Auction,
+            TradeType::AuctionEurId3H => Self::Auction,
+        };
+    }
 }
 
 impl From<String> for TradeType {
