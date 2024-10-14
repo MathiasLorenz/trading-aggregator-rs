@@ -11,35 +11,12 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use strum_macros::{AsRefStr, EnumString};
 use time::macros::{date, offset, time};
-use time::{Duration, OffsetDateTime};
+use time::OffsetDateTime;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // I think I'll have to swap 'time' for 'chrono' as the 'chrono-tz' crate looks very cool for handling timezones
     // more properly, which I'll have to...
-
-    let id = 2;
-    let area = Area::DK1;
-    let counter_part = CounterPart::Nordpool;
-    let delivery_start =
-        OffsetDateTime::new_in_offset(date!(2024 - 09 - 02), time!(00:00:00), offset!(UTC));
-    let delivery_end = delivery_start + Duration::DAY;
-    let price = Some(Decimal::from_str("242.2").unwrap());
-    let quantity_mwh = Decimal::from_str("23.1").unwrap();
-    let trade_side = TradeSide::Buy;
-    let trade_type = TradeType::Intraday;
-
-    let _trade = Trade {
-        id,
-        area,
-        counter_part,
-        delivery_end,
-        delivery_start,
-        price,
-        quantity_mwh,
-        trade_side,
-        trade_type,
-    };
 
     // Load environment variables from .env
     dotenvy::dotenv()?;
@@ -68,7 +45,7 @@ async fn main() -> Result<()> {
         OffsetDateTime::new_in_offset(date!(2024 - 11 - 01), time!(00:00:00), offset!(UTC));
 
     let now = Instant::now();
-    let report = Report::new(delivery_from, delivery_to, trades)?;
+    let _report = Report::new(delivery_from, delivery_to, trades)?;
     println!("Elapsed: {:.2?}", now.elapsed());
 
     // println!("Report: {:#?}", report);
