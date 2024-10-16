@@ -43,78 +43,50 @@ impl Report {
         Ok(report)
     }
 
-    pub fn revenue(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed: Decimal;
-
+    fn aggregate_metric<F>(
+        &self,
+        market: Option<Market>,
+        area: Option<Area>,
+        aggregator: F,
+    ) -> Decimal
+    where
+        F: Fn(&ReportEntry, Option<Market>) -> Decimal,
+    {
         if let Some(area) = area {
-            if !self.areas.contains_key(&area) {
-                return Decimal::ZERO;
-            }
-            summed = self.areas.get(&area).unwrap().revenue(market);
+            self.areas
+                .get(&area)
+                .map_or(Decimal::ZERO, |entry| aggregator(entry, market))
         } else {
-            summed = self.areas.values().map(|f| f.revenue(market)).sum();
+            self.areas
+                .values()
+                .map(|entry| aggregator(entry, market))
+                .sum()
         }
+    }
 
+    pub fn revenue(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.revenue(market));
         summed.round_dp(2)
     }
 
     pub fn costs(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed: Decimal;
-
-        if let Some(area) = area {
-            if !self.areas.contains_key(&area) {
-                return Decimal::ZERO;
-            }
-            summed = self.areas.get(&area).unwrap().costs(market);
-        } else {
-            summed = self.areas.values().map(|f| f.costs(market)).sum();
-        }
-
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.costs(market));
         summed.round_dp(2)
     }
 
     pub fn mw_sold(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed: Decimal;
-
-        if let Some(area) = area {
-            if !self.areas.contains_key(&area) {
-                return Decimal::ZERO;
-            }
-            summed = self.areas.get(&area).unwrap().mw_sold(market);
-        } else {
-            summed = self.areas.values().map(|f| f.mw_sold(market)).sum();
-        }
-
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.mw_sold(market));
         summed.round_dp(1)
     }
 
     pub fn mw_bought(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed: Decimal;
-
-        if let Some(area) = area {
-            if !self.areas.contains_key(&area) {
-                return Decimal::ZERO;
-            }
-            summed = self.areas.get(&area).unwrap().mw_bought(market);
-        } else {
-            summed = self.areas.values().map(|f| f.mw_bought(market)).sum();
-        }
-
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.mw_bought(market));
         summed.round_dp(1)
     }
 
     pub fn gross_profit(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed: Decimal;
-
-        if let Some(area) = area {
-            if !self.areas.contains_key(&area) {
-                return Decimal::ZERO;
-            }
-            summed = self.areas.get(&area).unwrap().gross_profit(market);
-        } else {
-            summed = self.areas.values().map(|f| f.gross_profit(market)).sum();
-        }
-
+        let summed =
+            self.aggregate_metric(market, area, |entry, market| entry.gross_profit(market));
         summed.round_dp(2)
     }
 }
