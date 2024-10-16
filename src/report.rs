@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
 use rust_decimal::{prelude::FromPrimitive, Decimal};
@@ -149,14 +149,12 @@ impl ReportEntry {
 
         let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
 
-        *self
-            .mw
-            .entry((trade_side, market))
-            .or_insert(Decimal::from_str("0.0")?) += abs_length_adjusted_quantity;
+        *self.mw.entry((trade_side, market)).or_insert(Decimal::ZERO) +=
+            abs_length_adjusted_quantity;
         *self
             .cash_flow
             .entry((trade_side, market))
-            .or_insert(Decimal::from_str("0.0")?) += abs_length_adjusted_quantity * trade_price;
+            .or_insert(Decimal::ZERO) += abs_length_adjusted_quantity * trade_price;
 
         Ok(())
     }
