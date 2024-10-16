@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
+use chrono::{DateTime, FixedOffset};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
-use time::OffsetDateTime;
 
 #[derive(
     Debug, Serialize, Deserialize, EnumString, Hash, PartialEq, PartialOrd, Eq, Clone, Copy,
@@ -114,8 +114,8 @@ pub struct Trade {
     pub id: i32,
     pub area: Area,
     pub counter_part: CounterPart,
-    pub delivery_end: OffsetDateTime,
-    pub delivery_start: OffsetDateTime,
+    pub delivery_end: DateTime<FixedOffset>,
+    pub delivery_start: DateTime<FixedOffset>,
     pub price: Option<Decimal>,
     pub quantity_mwh: Decimal,
     #[serde(rename = "side")]

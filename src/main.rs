@@ -6,16 +6,13 @@ mod report;
 mod trade;
 
 use anyhow::Result;
+use chrono::prelude::*;
+use chrono_tz::Europe::Copenhagen;
 use db::{get_trades, init_db_pool};
 use report::Report;
-use time::macros::{date, offset, time};
-use time::OffsetDateTime;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // I think I'll have to swap 'time' for 'chrono' as the 'chrono-tz' crate looks very cool for handling timezones
-    // more properly, which I'll have to...
-
     // Load environment variables from .env
     dotenvy::dotenv()?;
     let db_url = env::var("DATABASE_URL")?;
@@ -24,10 +21,20 @@ async fn main() -> Result<()> {
 
     let pool = init_db_pool(&db_url).await?;
 
-    let delivery_from =
-        OffsetDateTime::new_in_offset(date!(2024 - 10 - 01), time!(22:00:00), offset!(UTC));
-    let delivery_to =
-        OffsetDateTime::new_in_offset(date!(2024 - 10 - 10), time!(22:00:00), offset!(UTC));
+    let delivery_from = NaiveDate::from_ymd_opt(2023, 1, 1)
+        .unwrap()
+        .and_hms_opt(0, 0, 0)
+        .unwrap();
+    let delivery_from = Copenhagen.from_local_datetime(&delivery_from).unwrap();
+
+    let delivery_to = NaiveDate::from_ymd_opt(2024, 11, 1)
+        .unwrap()
+        .and_hms_opt(0, 0, 0)
+        .unwrap();
+    let delivery_to = Copenhagen.from_local_datetime(&delivery_to).unwrap();
+
+    println!("Delivery from: {:#?}", delivery_from);
+    println!("Delivery to: {:#?}", delivery_to);
 
     println!("Getting from db");
 

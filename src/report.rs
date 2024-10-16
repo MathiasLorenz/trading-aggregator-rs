@@ -1,23 +1,24 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
+use chrono::{DateTime, FixedOffset};
+use chrono_tz::Tz;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
 
 use crate::trade::{Area, Market, Trade, TradeSide};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Report {
-    delivery_from: OffsetDateTime,
-    delivery_to: OffsetDateTime,
+    _delivery_from: DateTime<Tz>,
+    _delivery_to: DateTime<Tz>,
     areas: HashMap<Area, ReportEntry>,
 }
 
 impl Report {
     pub fn new(
-        delivery_from: OffsetDateTime,
-        delivery_to: OffsetDateTime,
+        delivery_from: DateTime<Tz>,
+        delivery_to: DateTime<Tz>,
         trades: Vec<Trade>,
     ) -> Result<Self> {
         if delivery_to < delivery_from {
@@ -35,8 +36,8 @@ impl Report {
         }
 
         let report = Report {
-            delivery_from,
-            delivery_to,
+            _delivery_from: delivery_from,
+            _delivery_to: delivery_to,
             areas,
         };
 
@@ -213,14 +214,14 @@ impl ReportEntry {
 }
 
 fn contract_length(
-    delivery_start: &OffsetDateTime,
-    delivery_end: &OffsetDateTime,
+    delivery_start: &DateTime<FixedOffset>,
+    delivery_end: &DateTime<FixedOffset>,
 ) -> Result<Decimal> {
     // Todo: This probably won't work when summer/winter changes over the duration :sad-panda:
     // This has to be fixed.
-    let duration = *delivery_end - *delivery_start;
+    let time_delta = *delivery_end - *delivery_start;
 
-    let delta_seconds = Decimal::from_i64(duration.whole_seconds())
+    let delta_seconds = Decimal::from_i64(time_delta.num_seconds())
         .ok_or(anyhow!("Could not convert duration to seconds"))?;
     let seconds_per_hour = Decimal::from_str_exact("3600.0")?;
 

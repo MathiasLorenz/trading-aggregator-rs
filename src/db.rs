@@ -1,5 +1,6 @@
+use chrono::DateTime;
+use chrono_tz::Tz;
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use time::OffsetDateTime;
 
 use crate::trade::Trade;
 use anyhow::{Context, Result};
@@ -14,8 +15,8 @@ pub async fn init_db_pool(db_url: &str) -> Result<PgPool> {
 
 pub async fn get_trades(
     pool: &PgPool,
-    delivery_from: &OffsetDateTime,
-    delivery_to: &OffsetDateTime,
+    delivery_from: &DateTime<Tz>,
+    delivery_to: &DateTime<Tz>,
 ) -> Result<Vec<Trade>> {
     let mut trades = sqlx::query_as!(
         Trade,
