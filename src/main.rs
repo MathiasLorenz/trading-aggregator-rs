@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
     let delivery_from =
         OffsetDateTime::new_in_offset(date!(2024 - 10 - 01), time!(22:00:00), offset!(UTC));
     let delivery_to =
-        OffsetDateTime::new_in_offset(date!(2024 - 10 - 04), time!(22:00:00), offset!(UTC));
+        OffsetDateTime::new_in_offset(date!(2024 - 10 - 10), time!(22:00:00), offset!(UTC));
 
     println!("Getting from db");
 
@@ -41,6 +41,7 @@ async fn main() -> Result<()> {
     let trades = get_trades(&pool, &delivery_from, &delivery_to).await?;
 
     let elapsed = now.elapsed();
+    println!("Got {} trades from database", trades.len());
     println!("Elapsed: {:.2?}", elapsed);
 
     println!("Creating report");
@@ -49,11 +50,11 @@ async fn main() -> Result<()> {
     let report = Report::new(delivery_from, delivery_to, trades)?;
     println!("Elapsed: {:.2?}", now.elapsed());
 
-    println!("Total revenue: {:#?}", report.revenue(None, None));
-    println!("Total costs: {:#?}", report.costs(None, None));
-    println!("Total mw sold: {:#?}", report.mw_sold(None, None));
-    println!("Total mw bought: {:#?}", report.mw_bought(None, None));
-    println!("Total gross profit: {:#?}", report.gross_profit(None, None));
+    println!("Total gross profit: {:?}", report.gross_profit(None, None));
+    println!("Total revenue: {:?}", report.revenue(None, None));
+    println!("Total costs: {:?}", report.costs(None, None));
+    println!("Total mw sold: {:?}", report.mw_sold(None, None));
+    println!("Total mw bought: {:?}", report.mw_bought(None, None));
 
     println!("Done :)");
     Ok(())
@@ -153,7 +154,7 @@ impl Report {
             summed = self.areas.values().map(|f| f.revenue(market)).sum();
         }
 
-        summed
+        summed.round_dp(2)
     }
 
     fn costs(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
@@ -168,7 +169,7 @@ impl Report {
             summed = self.areas.values().map(|f| f.costs(market)).sum();
         }
 
-        summed
+        summed.round_dp(2)
     }
 
     fn mw_sold(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
@@ -183,7 +184,7 @@ impl Report {
             summed = self.areas.values().map(|f| f.mw_sold(market)).sum();
         }
 
-        summed
+        summed.round_dp(1)
     }
 
     fn mw_bought(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
@@ -198,7 +199,7 @@ impl Report {
             summed = self.areas.values().map(|f| f.mw_bought(market)).sum();
         }
 
-        summed
+        summed.round_dp(1)
     }
 
     fn gross_profit(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
@@ -213,7 +214,7 @@ impl Report {
             summed = self.areas.values().map(|f| f.gross_profit(market)).sum();
         }
 
-        summed
+        summed.round_dp(2)
     }
 }
 
