@@ -10,7 +10,7 @@ use time::OffsetDateTime;
 )]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum Area {
-    AMP,
+    Amp,
     DK1,
     DK2,
     FR,
@@ -34,8 +34,8 @@ pub enum CounterPart {
     Epex,
     Esett,
     Elexon,
-    RTE,
-    SEMO,
+    Rte,
+    Semo,
     Tennet,
     Amprion,
 }
@@ -88,18 +88,18 @@ pub enum Market {
 
 impl From<TradeType> for Market {
     fn from(value: TradeType) -> Self {
-        return match value {
+        match value {
             TradeType::Intraday => Self::Intraday,
             TradeType::Imbalance => Self::Imbalance,
-            TradeType::AuctionGbDahH => Self::Auction,
-            TradeType::AuctionGbDahHh => Self::Auction,
-            TradeType::AuctionGbId1Hh => Self::Auction,
-            TradeType::AuctionGbId2Hh => Self::Auction,
-            TradeType::AuctionEurDahH => Self::Auction,
-            TradeType::AuctionEurId1H => Self::Auction,
-            TradeType::AuctionEurId2H => Self::Auction,
-            TradeType::AuctionEurId3H => Self::Auction,
-        };
+            TradeType::AuctionGbDahH
+            | TradeType::AuctionGbDahHh
+            | TradeType::AuctionGbId1Hh
+            | TradeType::AuctionGbId2Hh
+            | TradeType::AuctionEurDahH
+            | TradeType::AuctionEurId1H
+            | TradeType::AuctionEurId2H
+            | TradeType::AuctionEurId3H => Self::Auction,
+        }
     }
 }
 
