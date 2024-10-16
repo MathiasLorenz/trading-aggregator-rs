@@ -2,21 +2,11 @@ use std::str::FromStr;
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use strum_macros::{AsRefStr, EnumString};
+use strum_macros::EnumString;
 use time::OffsetDateTime;
 
 #[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    EnumString,
-    AsRefStr,
-    Hash,
-    PartialEq,
-    PartialOrd,
-    Eq,
-    Clone,
-    Copy,
+    Debug, Serialize, Deserialize, EnumString, Hash, PartialEq, PartialOrd, Eq, Clone, Copy,
 )]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum Area {
@@ -37,7 +27,7 @@ impl From<String> for Area {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr)]
+#[derive(Debug, Serialize, Deserialize, EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum CounterPart {
     Nordpool,
@@ -57,17 +47,7 @@ impl From<String> for CounterPart {
 }
 
 #[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    EnumString,
-    AsRefStr,
-    Hash,
-    PartialEq,
-    PartialOrd,
-    Eq,
-    Copy,
-    Clone,
+    Debug, Serialize, Deserialize, EnumString, Hash, PartialEq, PartialOrd, Eq, Copy, Clone,
 )]
 #[strum(serialize_all = "lowercase")]
 pub enum TradeSide {
@@ -81,7 +61,7 @@ impl From<String> for TradeSide {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString, AsRefStr, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, EnumString, Clone, Copy)]
 #[strum(serialize_all = "snake_case")]
 pub enum TradeType {
     Intraday,
@@ -97,17 +77,7 @@ pub enum TradeType {
 }
 
 #[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    EnumString,
-    AsRefStr,
-    Hash,
-    PartialEq,
-    PartialOrd,
-    Eq,
-    Clone,
-    Copy,
+    Debug, Serialize, Deserialize, EnumString, Hash, PartialEq, PartialOrd, Eq, Clone, Copy,
 )]
 #[strum(serialize_all = "lowercase")]
 pub enum Market {
