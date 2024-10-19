@@ -1,10 +1,13 @@
-use std::collections::HashMap;
+use futures::TryStreamExt;
+use std::{collections::HashMap, pin::Pin};
 
 use anyhow::{anyhow, bail, Result};
 use chrono::{DateTime, FixedOffset};
 use chrono_tz::Tz;
+use futures::Stream;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde::{Deserialize, Serialize};
+use sqlx::Error; // Should probably map/use anyhow::Error instead in the stream
 
 use crate::trade::{Area, Market, Trade, TradeSide};
 
@@ -33,6 +36,34 @@ impl Report {
                 .entry(area)
                 .or_insert(ReportEntry::new(area))
                 .add_trade(trade)?;
+        }
+
+        let report = Report {
+            _delivery_from: delivery_from,
+            _delivery_to: delivery_to,
+            areas,
+        };
+
+        Ok(report)
+    }
+
+    pub async fn new_from_stream<'a>(
+        delivery_from: DateTime<Tz>,
+        delivery_to: DateTime<Tz>,
+        mut trades_iter: Pin<Box<dyn Stream<Item = Result<Trade, Error>> + Send + 'a>>,
+    ) -> Result<Self> {
+        if delivery_to < delivery_from {
+            bail!("delivery_from has to be before delivery_to");
+        }
+
+        let mut areas = HashMap::new();
+
+        while let Some(trade) = trades_iter.try_next().await? {
+            let area = trade.area;
+            areas
+                .entry(area)
+                .or_insert(ReportEntry::new(area))
+                .add_trade(&trade)?;
         }
 
         let report = Report {

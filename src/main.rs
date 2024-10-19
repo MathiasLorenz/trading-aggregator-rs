@@ -7,9 +7,10 @@ mod trade;
 
 use anyhow::Result;
 use chrono::prelude::*;
-use chrono_tz::Europe::Copenhagen;
-use db::{get_trades, init_db_pool};
+use chrono_tz::{Europe::Copenhagen, Tz};
+use db::{get_trades, get_trades_stream, init_db_pool};
 use report::Report;
+use sqlx::PgPool;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -21,7 +22,7 @@ async fn main() -> Result<()> {
 
     let pool = init_db_pool(&db_url).await?;
 
-    let delivery_from = NaiveDate::from_ymd_opt(2023, 1, 1)
+    let delivery_from = NaiveDate::from_ymd_opt(2024, 1, 1)
         .unwrap()
         .and_hms_opt(0, 0, 0)
         .unwrap();
@@ -33,24 +34,40 @@ async fn main() -> Result<()> {
         .unwrap();
     let delivery_to = Copenhagen.from_local_datetime(&delivery_to).unwrap();
 
+    println!("Create report, standard");
+    let now = Instant::now();
+    create_report(&pool, &delivery_from, &delivery_to).await?;
+    println!("Generating report, standard, took: {:.2?}", now.elapsed());
+    println!();
+
+    let now = Instant::now();
+    println!("Create report, stream");
+    create_report_stream(&pool, &delivery_from, &delivery_to).await?;
+    println!("Generating report, stream, took: {:.2?}", now.elapsed());
+    println!();
+
+    println!("Done :)");
+    Ok(())
+}
+
+async fn create_report(
+    pool: &PgPool,
+    delivery_from: &DateTime<Tz>,
+    delivery_to: &DateTime<Tz>,
+) -> Result<()> {
     println!("Delivery from: {:#?}", delivery_from);
     println!("Delivery to: {:#?}", delivery_to);
 
     println!("Getting from db");
 
     let now = Instant::now();
-
-    let trades = get_trades(&pool, &delivery_from, &delivery_to).await?;
-
+    let trades = get_trades(pool, delivery_from, delivery_to).await?;
     let elapsed = now.elapsed();
-    println!("Got {} trades from database", trades.len());
-    println!("Elapsed: {:.2?}", elapsed);
-
-    println!("Creating report");
+    println!("Getting trades took: {:.2?}", elapsed);
 
     let now = Instant::now();
-    let report = Report::new(delivery_from, delivery_to, trades)?;
-    println!("Elapsed: {:.2?}", now.elapsed());
+    let report = Report::new(*delivery_from, *delivery_to, trades)?;
+    println!("Report part took: {:.2?}", now.elapsed());
 
     println!("Total gross profit: {:?}", report.gross_profit(None, None));
     println!("Total revenue: {:?}", report.revenue(None, None));
@@ -58,6 +75,29 @@ async fn main() -> Result<()> {
     println!("Total mw sold: {:?}", report.mw_sold(None, None));
     println!("Total mw bought: {:?}", report.mw_bought(None, None));
 
-    println!("Done :)");
+    Ok(())
+}
+
+async fn create_report_stream(
+    pool: &PgPool,
+    delivery_from: &DateTime<Tz>,
+    delivery_to: &DateTime<Tz>,
+) -> Result<()> {
+    println!("Delivery from: {:#?}", delivery_from);
+    println!("Delivery to: {:#?}", delivery_to);
+
+    println!("Getting stream of trades from db");
+    let trades_stream = get_trades_stream(pool, delivery_from, delivery_to);
+
+    let now = Instant::now();
+    let report = Report::new_from_stream(*delivery_from, *delivery_to, trades_stream).await?;
+    println!("Creating report, stream, took: {:.2?}", now.elapsed());
+
+    println!("Total gross profit: {:?}", report.gross_profit(None, None));
+    println!("Total revenue: {:?}", report.revenue(None, None));
+    println!("Total costs: {:?}", report.costs(None, None));
+    println!("Total mw sold: {:?}", report.mw_sold(None, None));
+    println!("Total mw bought: {:?}", report.mw_bought(None, None));
+
     Ok(())
 }

@@ -1,6 +1,9 @@
+use std::pin::Pin;
+
 use chrono::DateTime;
 use chrono_tz::Tz;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use futures::{Stream, StreamExt};
+use sqlx::{postgres::PgPoolOptions, Error, PgPool};
 
 use crate::trade::Trade;
 use anyhow::{Context, Result};
@@ -57,4 +60,49 @@ pub async fn get_trades(
     trades.extend(imbalance_trades);
 
     Ok(trades)
+}
+
+pub fn get_trades_stream<'a>(
+    pool: &'a PgPool,
+    delivery_from: &'a DateTime<Tz>,
+    delivery_to: &'a DateTime<Tz>,
+) -> Pin<Box<dyn Stream<Item = Result<Trade, Error>> + Send + 'a>> {
+    let intraday_trades = sqlx::query_as!(
+        Trade,
+        "
+    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
+    FROM intraday_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
+    )
+        .fetch(pool);
+
+    let auction_trades = sqlx::query_as!(
+        Trade,
+        "
+    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
+    FROM auction_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
+    )
+        .fetch(pool);
+
+    let imbalance_trades = sqlx::query_as!(
+        Trade,
+        "
+    SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
+    FROM imbalance_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
+    )
+        .fetch(pool);
+
+    Box::pin(
+        intraday_trades
+            .chain(auction_trades)
+            .chain(imbalance_trades),
+    )
 }
