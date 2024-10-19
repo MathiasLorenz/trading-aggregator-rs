@@ -66,7 +66,7 @@ async fn create_report(
     println!("Getting trades took: {:.2?}", elapsed);
 
     let now = Instant::now();
-    let report = Report::new(*delivery_from, *delivery_to, trades)?;
+    let report = Report::new(delivery_from, delivery_to, trades)?;
     println!("Report part took: {:.2?}", now.elapsed());
 
     println!("Total gross profit: {:?}", report.gross_profit(None, None));
@@ -86,11 +86,10 @@ async fn create_report_stream(
     println!("Delivery from: {:#?}", delivery_from);
     println!("Delivery to: {:#?}", delivery_to);
 
-    println!("Getting stream of trades from db");
     let trades_stream = get_trades_stream(pool, delivery_from, delivery_to);
 
     let now = Instant::now();
-    let report = Report::new_from_stream(*delivery_from, *delivery_to, trades_stream).await?;
+    let report = Report::new_from_stream(delivery_from, delivery_to, trades_stream).await?;
     println!("Creating report, stream, took: {:.2?}", now.elapsed());
 
     println!("Total gross profit: {:?}", report.gross_profit(None, None));

@@ -20,8 +20,8 @@ pub struct Report {
 
 impl Report {
     pub fn new(
-        delivery_from: DateTime<Tz>,
-        delivery_to: DateTime<Tz>,
+        delivery_from: &DateTime<Tz>,
+        delivery_to: &DateTime<Tz>,
         trades: Vec<Trade>,
     ) -> Result<Self> {
         if delivery_to < delivery_from {
@@ -39,8 +39,8 @@ impl Report {
         }
 
         let report = Report {
-            _delivery_from: delivery_from,
-            _delivery_to: delivery_to,
+            _delivery_from: *delivery_from,
+            _delivery_to: *delivery_to,
             areas,
         };
 
@@ -48,8 +48,8 @@ impl Report {
     }
 
     pub async fn new_from_stream<'a>(
-        delivery_from: DateTime<Tz>,
-        delivery_to: DateTime<Tz>,
+        delivery_from: &DateTime<Tz>,
+        delivery_to: &DateTime<Tz>,
         mut trades_iter: Pin<Box<dyn Stream<Item = Result<Trade, Error>> + Send + 'a>>,
     ) -> Result<Self> {
         if delivery_to < delivery_from {
@@ -67,8 +67,8 @@ impl Report {
         }
 
         let report = Report {
-            _delivery_from: delivery_from,
-            _delivery_to: delivery_to,
+            _delivery_from: *delivery_from,
+            _delivery_to: *delivery_to,
             areas,
         };
 
