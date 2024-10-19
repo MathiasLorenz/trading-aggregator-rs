@@ -9,7 +9,7 @@ use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde::{Deserialize, Serialize};
 use sqlx::Error; // Should probably map/use anyhow::Error instead in the stream
 
-use crate::trade::{Area, AreaSelection, Market, Trade, TradeSide};
+use crate::trade::{Area, AreaSelection, Market, MarketSelection, Trade, TradeSide};
 
 #[derive(Debug)]
 pub struct Report {
@@ -77,12 +77,12 @@ impl Report {
 
     fn aggregate_metric<F>(
         &self,
-        market: Option<Market>,
+        market: MarketSelection,
         area_selection: AreaSelection,
         aggregator: F,
     ) -> Decimal
     where
-        F: Fn(&ReportEntry, Option<Market>) -> Decimal,
+        F: Fn(&ReportEntry, MarketSelection) -> Decimal,
     {
         match area_selection {
             AreaSelection::Specific(area) => self
@@ -97,34 +97,34 @@ impl Report {
         }
     }
 
-    pub fn revenue(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+    pub fn revenue(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
         let summed = self.aggregate_metric(market, area_selection, |entry, market| {
             entry.revenue(market)
         });
         summed.round_dp(2)
     }
 
-    pub fn costs(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+    pub fn costs(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
         let summed =
             self.aggregate_metric(market, area_selection, |entry, market| entry.costs(market));
         summed.round_dp(2)
     }
 
-    pub fn mw_sold(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+    pub fn mw_sold(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
         let summed = self.aggregate_metric(market, area_selection, |entry, market| {
             entry.mw_sold(market)
         });
         summed.round_dp(1)
     }
 
-    pub fn mw_bought(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+    pub fn mw_bought(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
         let summed = self.aggregate_metric(market, area_selection, |entry, market| {
             entry.mw_bought(market)
         });
         summed.round_dp(1)
     }
 
-    pub fn gross_profit(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+    pub fn gross_profit(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
         let summed = self.aggregate_metric(market, area_selection, |entry, market| {
             entry.gross_profit(market)
         });
@@ -172,83 +172,91 @@ impl ReportEntry {
         Ok(())
     }
 
-    fn revenue(&self, market: Option<Market>) -> Decimal {
-        if let Some(market) = market {
-            return *self.cash_flow.get(&(TradeSide::Sell, market)).unwrap();
+    fn revenue(&self, market: MarketSelection) -> Decimal {
+        match market {
+            MarketSelection::Specific(market) => {
+                *self.cash_flow.get(&(TradeSide::Sell, market)).unwrap()
+            }
+            MarketSelection::All => {
+                *self
+                    .cash_flow
+                    .get(&(TradeSide::Sell, Market::Auction))
+                    .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .cash_flow
+                        .get(&(TradeSide::Sell, Market::Imbalance))
+                        .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .cash_flow
+                        .get(&(TradeSide::Sell, Market::Intraday))
+                        .unwrap_or(&Decimal::ZERO)
+            }
         }
-
-        *self
-            .cash_flow
-            .get(&(TradeSide::Sell, Market::Auction))
-            .unwrap_or(&Decimal::ZERO)
-            + *self
-                .cash_flow
-                .get(&(TradeSide::Sell, Market::Imbalance))
-                .unwrap_or(&Decimal::ZERO)
-            + *self
-                .cash_flow
-                .get(&(TradeSide::Sell, Market::Intraday))
-                .unwrap_or(&Decimal::ZERO)
     }
 
-    fn costs(&self, market: Option<Market>) -> Decimal {
-        if let Some(market) = market {
-            return *self.cash_flow.get(&(TradeSide::Buy, market)).unwrap();
+    fn costs(&self, market: MarketSelection) -> Decimal {
+        match market {
+            MarketSelection::Specific(market) => {
+                *self.cash_flow.get(&(TradeSide::Buy, market)).unwrap()
+            }
+            MarketSelection::All => {
+                *self
+                    .cash_flow
+                    .get(&(TradeSide::Buy, Market::Auction))
+                    .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .cash_flow
+                        .get(&(TradeSide::Buy, Market::Imbalance))
+                        .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .cash_flow
+                        .get(&(TradeSide::Buy, Market::Intraday))
+                        .unwrap_or(&Decimal::ZERO)
+            }
         }
-
-        *self
-            .cash_flow
-            .get(&(TradeSide::Buy, Market::Auction))
-            .unwrap_or(&Decimal::ZERO)
-            + *self
-                .cash_flow
-                .get(&(TradeSide::Buy, Market::Imbalance))
-                .unwrap_or(&Decimal::ZERO)
-            + *self
-                .cash_flow
-                .get(&(TradeSide::Buy, Market::Intraday))
-                .unwrap_or(&Decimal::ZERO)
     }
 
-    fn mw_sold(&self, market: Option<Market>) -> Decimal {
-        if let Some(market) = market {
-            return *self.mw.get(&(TradeSide::Sell, market)).unwrap();
+    fn mw_sold(&self, market: MarketSelection) -> Decimal {
+        match market {
+            MarketSelection::Specific(market) => *self.mw.get(&(TradeSide::Sell, market)).unwrap(),
+            MarketSelection::All => {
+                *self
+                    .mw
+                    .get(&(TradeSide::Sell, Market::Auction))
+                    .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .mw
+                        .get(&(TradeSide::Sell, Market::Imbalance))
+                        .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .mw
+                        .get(&(TradeSide::Sell, Market::Intraday))
+                        .unwrap_or(&Decimal::ZERO)
+            }
         }
-
-        *self
-            .mw
-            .get(&(TradeSide::Sell, Market::Auction))
-            .unwrap_or(&Decimal::ZERO)
-            + *self
-                .mw
-                .get(&(TradeSide::Sell, Market::Imbalance))
-                .unwrap_or(&Decimal::ZERO)
-            + *self
-                .mw
-                .get(&(TradeSide::Sell, Market::Intraday))
-                .unwrap_or(&Decimal::ZERO)
     }
 
-    fn mw_bought(&self, market: Option<Market>) -> Decimal {
-        if let Some(market) = market {
-            return *self.mw.get(&(TradeSide::Buy, market)).unwrap();
+    fn mw_bought(&self, market: MarketSelection) -> Decimal {
+        match market {
+            MarketSelection::Specific(market) => *self.mw.get(&(TradeSide::Buy, market)).unwrap(),
+            MarketSelection::All => {
+                *self
+                    .mw
+                    .get(&(TradeSide::Buy, Market::Auction))
+                    .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .mw
+                        .get(&(TradeSide::Buy, Market::Imbalance))
+                        .unwrap_or(&Decimal::ZERO)
+                    + *self
+                        .mw
+                        .get(&(TradeSide::Buy, Market::Intraday))
+                        .unwrap_or(&Decimal::ZERO)
+            }
         }
-
-        *self
-            .mw
-            .get(&(TradeSide::Buy, Market::Auction))
-            .unwrap_or(&Decimal::ZERO)
-            + *self
-                .mw
-                .get(&(TradeSide::Buy, Market::Imbalance))
-                .unwrap_or(&Decimal::ZERO)
-            + *self
-                .mw
-                .get(&(TradeSide::Buy, Market::Intraday))
-                .unwrap_or(&Decimal::ZERO)
     }
 
-    fn gross_profit(&self, market: Option<Market>) -> Decimal {
+    fn gross_profit(&self, market: MarketSelection) -> Decimal {
         self.revenue(market) - self.costs(market)
     }
 }

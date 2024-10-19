@@ -12,7 +12,7 @@ use db::{get_trades, get_trades_stream, init_db_pool};
 use report::Report;
 use sqlx::PgPool;
 use tokio::task;
-use trade::AreaSelection;
+use trade::{AreaSelection, MarketSelection};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -73,20 +73,23 @@ async fn create_report(
 
     println!(
         "Total gross profit: {:?}",
-        report.gross_profit(None, AreaSelection::All)
+        report.gross_profit(MarketSelection::All, AreaSelection::All)
     );
     println!(
         "Total revenue: {:?}",
-        report.revenue(None, AreaSelection::All)
+        report.revenue(MarketSelection::All, AreaSelection::All)
     );
-    println!("Total costs: {:?}", report.costs(None, AreaSelection::All));
+    println!(
+        "Total costs: {:?}",
+        report.costs(MarketSelection::All, AreaSelection::All)
+    );
     println!(
         "Total mw sold: {:?}",
-        report.mw_sold(None, AreaSelection::All)
+        report.mw_sold(MarketSelection::All, AreaSelection::All)
     );
     println!(
         "Total mw bought: {:?}",
-        report.mw_bought(None, AreaSelection::All)
+        report.mw_bought(MarketSelection::All, AreaSelection::All)
     );
 
     Ok(())
@@ -108,20 +111,23 @@ async fn create_report_stream(
 
     println!(
         "Total gross profit: {:?}",
-        report.gross_profit(None, AreaSelection::All)
+        report.gross_profit(MarketSelection::All, AreaSelection::All)
     );
     println!(
         "Total revenue: {:?}",
-        report.revenue(None, AreaSelection::All)
+        report.revenue(MarketSelection::All, AreaSelection::All)
     );
-    println!("Total costs: {:?}", report.costs(None, AreaSelection::All));
+    println!(
+        "Total costs: {:?}",
+        report.costs(MarketSelection::All, AreaSelection::All)
+    );
     println!(
         "Total mw sold: {:?}",
-        report.mw_sold(None, AreaSelection::All)
+        report.mw_sold(MarketSelection::All, AreaSelection::All)
     );
     println!(
         "Total mw bought: {:?}",
-        report.mw_bought(None, AreaSelection::All)
+        report.mw_bought(MarketSelection::All, AreaSelection::All)
     );
 
     Ok(())

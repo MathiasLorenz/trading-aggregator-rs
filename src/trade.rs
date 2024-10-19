@@ -109,6 +109,12 @@ impl From<TradeType> for Market {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
+pub enum MarketSelection {
+    All,
+    Specific(Market),
+}
+
 impl From<String> for TradeType {
     fn from(item: String) -> Self {
         TradeType::from_str(&item).unwrap_or_else(|_| panic!("Invalid trade type: {}", item))
