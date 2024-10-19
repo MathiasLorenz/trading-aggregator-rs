@@ -1,5 +1,6 @@
 use futures::TryStreamExt;
 use std::{collections::HashMap, pin::Pin};
+use strum::IntoEnumIterator;
 
 use anyhow::{anyhow, bail, Result};
 use chrono::{DateTime, FixedOffset};
@@ -169,20 +170,14 @@ impl ReportEntry {
             MarketSelection::Specific(market) => {
                 *self.cash_flow.get(&(TradeSide::Sell, market)).unwrap()
             }
-            MarketSelection::All => {
-                *self
-                    .cash_flow
-                    .get(&(TradeSide::Sell, Market::Auction))
-                    .unwrap_or(&Decimal::ZERO)
-                    + *self
+            MarketSelection::All => Market::iter()
+                .map(|market| {
+                    *self
                         .cash_flow
-                        .get(&(TradeSide::Sell, Market::Imbalance))
+                        .get(&(TradeSide::Sell, market))
                         .unwrap_or(&Decimal::ZERO)
-                    + *self
-                        .cash_flow
-                        .get(&(TradeSide::Sell, Market::Intraday))
-                        .unwrap_or(&Decimal::ZERO)
-            }
+                })
+                .sum(),
         }
     }
 
@@ -191,60 +186,42 @@ impl ReportEntry {
             MarketSelection::Specific(market) => {
                 *self.cash_flow.get(&(TradeSide::Buy, market)).unwrap()
             }
-            MarketSelection::All => {
-                *self
-                    .cash_flow
-                    .get(&(TradeSide::Buy, Market::Auction))
-                    .unwrap_or(&Decimal::ZERO)
-                    + *self
+            MarketSelection::All => Market::iter()
+                .map(|market| {
+                    *self
                         .cash_flow
-                        .get(&(TradeSide::Buy, Market::Imbalance))
+                        .get(&(TradeSide::Buy, market))
                         .unwrap_or(&Decimal::ZERO)
-                    + *self
-                        .cash_flow
-                        .get(&(TradeSide::Buy, Market::Intraday))
-                        .unwrap_or(&Decimal::ZERO)
-            }
+                })
+                .sum(),
         }
     }
 
     fn mw_sold(&self, market: MarketSelection) -> Decimal {
         match market {
             MarketSelection::Specific(market) => *self.mw.get(&(TradeSide::Sell, market)).unwrap(),
-            MarketSelection::All => {
-                *self
-                    .mw
-                    .get(&(TradeSide::Sell, Market::Auction))
-                    .unwrap_or(&Decimal::ZERO)
-                    + *self
+            MarketSelection::All => Market::iter()
+                .map(|market| {
+                    *self
                         .mw
-                        .get(&(TradeSide::Sell, Market::Imbalance))
+                        .get(&(TradeSide::Sell, market))
                         .unwrap_or(&Decimal::ZERO)
-                    + *self
-                        .mw
-                        .get(&(TradeSide::Sell, Market::Intraday))
-                        .unwrap_or(&Decimal::ZERO)
-            }
+                })
+                .sum(),
         }
     }
 
     fn mw_bought(&self, market: MarketSelection) -> Decimal {
         match market {
             MarketSelection::Specific(market) => *self.mw.get(&(TradeSide::Buy, market)).unwrap(),
-            MarketSelection::All => {
-                *self
-                    .mw
-                    .get(&(TradeSide::Buy, Market::Auction))
-                    .unwrap_or(&Decimal::ZERO)
-                    + *self
+            MarketSelection::All => Market::iter()
+                .map(|market| {
+                    *self
                         .mw
-                        .get(&(TradeSide::Buy, Market::Imbalance))
+                        .get(&(TradeSide::Buy, market))
                         .unwrap_or(&Decimal::ZERO)
-                    + *self
-                        .mw
-                        .get(&(TradeSide::Buy, Market::Intraday))
-                        .unwrap_or(&Decimal::ZERO)
-            }
+                })
+                .sum(),
         }
     }
 

@@ -3,7 +3,7 @@ use std::str::FromStr;
 use chrono::{DateTime, FixedOffset};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
+use strum_macros::{EnumIter, EnumString};
 
 #[derive(
     Debug, Serialize, Deserialize, EnumString, Hash, PartialEq, PartialOrd, Eq, Clone, Copy,
@@ -83,7 +83,17 @@ pub enum TradeType {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, EnumString, Hash, PartialEq, PartialOrd, Eq, Clone, Copy,
+    Debug,
+    Serialize,
+    Deserialize,
+    EnumString,
+    EnumIter,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Clone,
+    Copy,
 )]
 #[strum(serialize_all = "lowercase")]
 pub enum Market {
