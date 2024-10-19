@@ -97,37 +97,29 @@ impl Report {
         }
     }
 
-    pub fn revenue(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
-        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
-            entry.revenue(market)
-        });
+    pub fn revenue(&self, market: MarketSelection, area: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.revenue(market));
         summed.round_dp(2)
     }
 
-    pub fn costs(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
+    pub fn costs(&self, market: MarketSelection, area: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.costs(market));
+        summed.round_dp(2)
+    }
+
+    pub fn mw_sold(&self, market: MarketSelection, area: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.mw_sold(market));
+        summed.round_dp(1)
+    }
+
+    pub fn mw_bought(&self, market: MarketSelection, area: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area, |entry, market| entry.mw_bought(market));
+        summed.round_dp(1)
+    }
+
+    pub fn gross_profit(&self, market: MarketSelection, area: AreaSelection) -> Decimal {
         let summed =
-            self.aggregate_metric(market, area_selection, |entry, market| entry.costs(market));
-        summed.round_dp(2)
-    }
-
-    pub fn mw_sold(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
-        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
-            entry.mw_sold(market)
-        });
-        summed.round_dp(1)
-    }
-
-    pub fn mw_bought(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
-        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
-            entry.mw_bought(market)
-        });
-        summed.round_dp(1)
-    }
-
-    pub fn gross_profit(&self, market: MarketSelection, area_selection: AreaSelection) -> Decimal {
-        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
-            entry.gross_profit(market)
-        });
+            self.aggregate_metric(market, area, |entry, market| entry.gross_profit(market));
         summed.round_dp(2)
     }
 }
