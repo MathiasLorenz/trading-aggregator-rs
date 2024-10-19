@@ -234,8 +234,6 @@ fn contract_length(
     delivery_start: &DateTime<FixedOffset>,
     delivery_end: &DateTime<FixedOffset>,
 ) -> Result<Decimal> {
-    // Todo: This probably won't work when summer/winter changes over the duration :sad-panda:
-    // This has to be fixed.
     let time_delta = *delivery_end - *delivery_start;
 
     let delta_seconds = Decimal::from_i64(time_delta.num_seconds())
