@@ -11,6 +11,7 @@ use chrono_tz::{Europe::Copenhagen, Tz};
 use db::{get_trades, get_trades_stream, init_db_pool};
 use report::Report;
 use sqlx::PgPool;
+use tokio::task;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -36,13 +37,13 @@ async fn main() -> Result<()> {
 
     println!("Create report, standard");
     let now = Instant::now();
-    create_report(&pool, &delivery_from, &delivery_to).await?;
+    create_report(&pool, delivery_from, delivery_to).await?;
     println!("Generating report, standard, took: {:.2?}", now.elapsed());
     println!();
 
     let now = Instant::now();
     println!("Create report, stream");
-    create_report_stream(&pool, &delivery_from, &delivery_to).await?;
+    create_report_stream(&pool, delivery_from, delivery_to).await?;
     println!("Generating report, stream, took: {:.2?}", now.elapsed());
     println!();
 
@@ -52,8 +53,8 @@ async fn main() -> Result<()> {
 
 async fn create_report(
     pool: &PgPool,
-    delivery_from: &DateTime<Tz>,
-    delivery_to: &DateTime<Tz>,
+    delivery_from: DateTime<Tz>,
+    delivery_to: DateTime<Tz>,
 ) -> Result<()> {
     println!("Delivery from: {:#?}", delivery_from);
     println!("Delivery to: {:#?}", delivery_to);
@@ -61,12 +62,13 @@ async fn create_report(
     println!("Getting from db");
 
     let now = Instant::now();
-    let trades = get_trades(pool, delivery_from, delivery_to).await?;
+    let trades = get_trades(pool, &delivery_from, &delivery_to).await?;
     let elapsed = now.elapsed();
     println!("Getting trades took: {:.2?}", elapsed);
 
     let now = Instant::now();
-    let report = Report::new(delivery_from, delivery_to, trades)?;
+    let report =
+        task::spawn_blocking(move || Report::new(&delivery_from, &delivery_to, trades)).await??;
     println!("Report part took: {:.2?}", now.elapsed());
 
     println!("Total gross profit: {:?}", report.gross_profit(None, None));
@@ -80,16 +82,16 @@ async fn create_report(
 
 async fn create_report_stream(
     pool: &PgPool,
-    delivery_from: &DateTime<Tz>,
-    delivery_to: &DateTime<Tz>,
+    delivery_from: DateTime<Tz>,
+    delivery_to: DateTime<Tz>,
 ) -> Result<()> {
     println!("Delivery from: {:#?}", delivery_from);
     println!("Delivery to: {:#?}", delivery_to);
 
-    let trades_stream = get_trades_stream(pool, delivery_from, delivery_to);
+    let trades_stream = get_trades_stream(pool, &delivery_from, &delivery_to);
 
     let now = Instant::now();
-    let report = Report::new_from_stream(delivery_from, delivery_to, trades_stream).await?;
+    let report = Report::new_from_stream(&delivery_from, &delivery_to, trades_stream).await?;
     println!("Creating report, stream, took: {:.2?}", now.elapsed());
 
     println!("Total gross profit: {:?}", report.gross_profit(None, None));
