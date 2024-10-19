@@ -9,7 +9,7 @@ use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde::{Deserialize, Serialize};
 use sqlx::Error; // Should probably map/use anyhow::Error instead in the stream
 
-use crate::trade::{Area, Market, Trade, TradeSide};
+use crate::trade::{Area, AreaSelection, Market, Trade, TradeSide};
 
 #[derive(Debug)]
 pub struct Report {
@@ -78,47 +78,56 @@ impl Report {
     fn aggregate_metric<F>(
         &self,
         market: Option<Market>,
-        area: Option<Area>,
+        area_selection: AreaSelection,
         aggregator: F,
     ) -> Decimal
     where
         F: Fn(&ReportEntry, Option<Market>) -> Decimal,
     {
-        if let Some(area) = area {
-            self.areas
+        match area_selection {
+            AreaSelection::Specific(area) => self
+                .areas
                 .get(&area)
-                .map_or(Decimal::ZERO, |entry| aggregator(entry, market))
-        } else {
-            self.areas
+                .map_or(Decimal::ZERO, |entry| aggregator(entry, market)),
+            AreaSelection::All => self
+                .areas
                 .values()
                 .map(|entry| aggregator(entry, market))
-                .sum()
+                .sum(),
         }
     }
 
-    pub fn revenue(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed = self.aggregate_metric(market, area, |entry, market| entry.revenue(market));
+    pub fn revenue(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
+            entry.revenue(market)
+        });
         summed.round_dp(2)
     }
 
-    pub fn costs(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed = self.aggregate_metric(market, area, |entry, market| entry.costs(market));
-        summed.round_dp(2)
-    }
-
-    pub fn mw_sold(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed = self.aggregate_metric(market, area, |entry, market| entry.mw_sold(market));
-        summed.round_dp(1)
-    }
-
-    pub fn mw_bought(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
-        let summed = self.aggregate_metric(market, area, |entry, market| entry.mw_bought(market));
-        summed.round_dp(1)
-    }
-
-    pub fn gross_profit(&self, market: Option<Market>, area: Option<Area>) -> Decimal {
+    pub fn costs(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
         let summed =
-            self.aggregate_metric(market, area, |entry, market| entry.gross_profit(market));
+            self.aggregate_metric(market, area_selection, |entry, market| entry.costs(market));
+        summed.round_dp(2)
+    }
+
+    pub fn mw_sold(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
+            entry.mw_sold(market)
+        });
+        summed.round_dp(1)
+    }
+
+    pub fn mw_bought(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
+            entry.mw_bought(market)
+        });
+        summed.round_dp(1)
+    }
+
+    pub fn gross_profit(&self, market: Option<Market>, area_selection: AreaSelection) -> Decimal {
+        let summed = self.aggregate_metric(market, area_selection, |entry, market| {
+            entry.gross_profit(market)
+        });
         summed.round_dp(2)
     }
 }

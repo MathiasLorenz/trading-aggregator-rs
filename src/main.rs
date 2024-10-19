@@ -12,10 +12,10 @@ use db::{get_trades, get_trades_stream, init_db_pool};
 use report::Report;
 use sqlx::PgPool;
 use tokio::task;
+use trade::AreaSelection;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Load environment variables from .env
     dotenvy::dotenv()?;
     let db_url = env::var("DATABASE_URL")?;
 
@@ -71,11 +71,23 @@ async fn create_report(
         task::spawn_blocking(move || Report::new(&delivery_from, &delivery_to, trades)).await??;
     println!("Report part took: {:.2?}", now.elapsed());
 
-    println!("Total gross profit: {:?}", report.gross_profit(None, None));
-    println!("Total revenue: {:?}", report.revenue(None, None));
-    println!("Total costs: {:?}", report.costs(None, None));
-    println!("Total mw sold: {:?}", report.mw_sold(None, None));
-    println!("Total mw bought: {:?}", report.mw_bought(None, None));
+    println!(
+        "Total gross profit: {:?}",
+        report.gross_profit(None, AreaSelection::All)
+    );
+    println!(
+        "Total revenue: {:?}",
+        report.revenue(None, AreaSelection::All)
+    );
+    println!("Total costs: {:?}", report.costs(None, AreaSelection::All));
+    println!(
+        "Total mw sold: {:?}",
+        report.mw_sold(None, AreaSelection::All)
+    );
+    println!(
+        "Total mw bought: {:?}",
+        report.mw_bought(None, AreaSelection::All)
+    );
 
     Ok(())
 }
@@ -94,11 +106,23 @@ async fn create_report_stream(
     let report = Report::new_from_stream(&delivery_from, &delivery_to, trades_stream).await?;
     println!("Creating report, stream, took: {:.2?}", now.elapsed());
 
-    println!("Total gross profit: {:?}", report.gross_profit(None, None));
-    println!("Total revenue: {:?}", report.revenue(None, None));
-    println!("Total costs: {:?}", report.costs(None, None));
-    println!("Total mw sold: {:?}", report.mw_sold(None, None));
-    println!("Total mw bought: {:?}", report.mw_bought(None, None));
+    println!(
+        "Total gross profit: {:?}",
+        report.gross_profit(None, AreaSelection::All)
+    );
+    println!(
+        "Total revenue: {:?}",
+        report.revenue(None, AreaSelection::All)
+    );
+    println!("Total costs: {:?}", report.costs(None, AreaSelection::All));
+    println!(
+        "Total mw sold: {:?}",
+        report.mw_sold(None, AreaSelection::All)
+    );
+    println!(
+        "Total mw bought: {:?}",
+        report.mw_bought(None, AreaSelection::All)
+    );
 
     Ok(())
 }

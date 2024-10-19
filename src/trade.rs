@@ -27,6 +27,12 @@ impl From<String> for Area {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
+pub enum AreaSelection {
+    All,
+    Specific(Area),
+}
+
 #[derive(Debug, Serialize, Deserialize, EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum CounterPart {
