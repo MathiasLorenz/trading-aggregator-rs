@@ -12,7 +12,6 @@ use db::{get_trades, get_trades_stream, init_db_pool};
 use report::Report;
 use sqlx::PgPool;
 use tokio::task;
-use trade::{AreaSelection, MarketSelection};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -37,13 +36,15 @@ async fn main() -> Result<()> {
 
     println!("Create report, standard");
     let now = Instant::now();
-    create_report(&pool, delivery_from, delivery_to).await?;
+    let report = create_report(&pool, delivery_from, delivery_to).await?;
+    report.print_key_metrics();
     println!("Generating report, standard, took: {:.2?}", now.elapsed());
     println!();
 
     let now = Instant::now();
     println!("Create report, stream");
-    create_report_stream(&pool, delivery_from, delivery_to).await?;
+    let report = create_report_stream(&pool, delivery_from, delivery_to).await?;
+    report.print_key_metrics();
     println!("Generating report, stream, took: {:.2?}", now.elapsed());
     println!();
 
@@ -55,7 +56,7 @@ async fn create_report(
     pool: &PgPool,
     delivery_from: DateTime<Tz>,
     delivery_to: DateTime<Tz>,
-) -> Result<()> {
+) -> Result<Report> {
     println!("Delivery from: {:#?}", delivery_from);
     println!("Delivery to: {:#?}", delivery_to);
 
@@ -71,35 +72,14 @@ async fn create_report(
         task::spawn_blocking(move || Report::new(&delivery_from, &delivery_to, trades)).await??;
     println!("Report part took: {:.2?}", now.elapsed());
 
-    println!(
-        "Total gross profit: {:?}",
-        report.gross_profit(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total revenue: {:?}",
-        report.revenue(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total costs: {:?}",
-        report.costs(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total mw sold: {:?}",
-        report.mw_sold(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total mw bought: {:?}",
-        report.mw_bought(MarketSelection::All, AreaSelection::All)
-    );
-
-    Ok(())
+    Ok(report)
 }
 
 async fn create_report_stream(
     pool: &PgPool,
     delivery_from: DateTime<Tz>,
     delivery_to: DateTime<Tz>,
-) -> Result<()> {
+) -> Result<Report> {
     println!("Delivery from: {:#?}", delivery_from);
     println!("Delivery to: {:#?}", delivery_to);
 
@@ -109,26 +89,5 @@ async fn create_report_stream(
     let report = Report::new_from_stream(&delivery_from, &delivery_to, trades_stream).await?;
     println!("Creating report, stream, took: {:.2?}", now.elapsed());
 
-    println!(
-        "Total gross profit: {:?}",
-        report.gross_profit(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total revenue: {:?}",
-        report.revenue(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total costs: {:?}",
-        report.costs(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total mw sold: {:?}",
-        report.mw_sold(MarketSelection::All, AreaSelection::All)
-    );
-    println!(
-        "Total mw bought: {:?}",
-        report.mw_bought(MarketSelection::All, AreaSelection::All)
-    );
-
-    Ok(())
+    Ok(report)
 }

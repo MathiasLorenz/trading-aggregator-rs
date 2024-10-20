@@ -76,6 +76,29 @@ impl Report {
         Ok(report)
     }
 
+    pub fn print_key_metrics(self) {
+        println!(
+            "Total gross profit: {:?}",
+            self.gross_profit(MarketSelection::All, AreaSelection::All)
+        );
+        println!(
+            "Total revenue: {:?}",
+            self.revenue(MarketSelection::All, AreaSelection::All)
+        );
+        println!(
+            "Total costs: {:?}",
+            self.costs(MarketSelection::All, AreaSelection::All)
+        );
+        println!(
+            "Total mw sold: {:?}",
+            self.mw_sold(MarketSelection::All, AreaSelection::All)
+        );
+        println!(
+            "Total mw bought: {:?}",
+            self.mw_bought(MarketSelection::All, AreaSelection::All)
+        );
+    }
+
     fn aggregate_metric<F>(
         &self,
         market: MarketSelection,
