@@ -254,9 +254,10 @@ impl ReportEntry {
 
     fn revenue(&self, market: MarketSelection) -> Decimal {
         match market {
-            MarketSelection::Specific(market) => {
-                *self.cash_flow.get(&(TradeSide::Sell, market)).unwrap()
-            }
+            MarketSelection::Specific(market) => *self
+                .cash_flow
+                .get(&(TradeSide::Sell, market))
+                .unwrap_or(&Decimal::ZERO),
             MarketSelection::All => Market::iter()
                 .map(|market| {
                     *self
@@ -270,9 +271,10 @@ impl ReportEntry {
 
     fn costs(&self, market: MarketSelection) -> Decimal {
         match market {
-            MarketSelection::Specific(market) => {
-                *self.cash_flow.get(&(TradeSide::Buy, market)).unwrap()
-            }
+            MarketSelection::Specific(market) => *self
+                .cash_flow
+                .get(&(TradeSide::Buy, market))
+                .unwrap_or(&Decimal::ZERO),
             MarketSelection::All => Market::iter()
                 .map(|market| {
                     *self
@@ -286,7 +288,10 @@ impl ReportEntry {
 
     fn mw_sold(&self, market: MarketSelection) -> Decimal {
         match market {
-            MarketSelection::Specific(market) => *self.mw.get(&(TradeSide::Sell, market)).unwrap(),
+            MarketSelection::Specific(market) => *self
+                .mw
+                .get(&(TradeSide::Sell, market))
+                .unwrap_or(&Decimal::ZERO),
             MarketSelection::All => Market::iter()
                 .map(|market| {
                     *self
@@ -300,7 +305,10 @@ impl ReportEntry {
 
     fn mw_bought(&self, market: MarketSelection) -> Decimal {
         match market {
-            MarketSelection::Specific(market) => *self.mw.get(&(TradeSide::Buy, market)).unwrap(),
+            MarketSelection::Specific(market) => *self
+                .mw
+                .get(&(TradeSide::Buy, market))
+                .unwrap_or(&Decimal::ZERO),
             MarketSelection::All => Market::iter()
                 .map(|market| {
                     *self
