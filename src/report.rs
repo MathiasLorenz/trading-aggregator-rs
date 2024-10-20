@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::Error; // Should probably map/use anyhow::Error instead in the stream
 
 use crate::trade::{
-    Area, AreaSelection, Market, MarketSelection, Trade, TradeForReport, TradeSide,
+    Area, AreaSelection, Market, MarketSelection, Trade, TradeForReport, TradeSide, TradeType,
 };
 
 #[derive(Debug)]
@@ -194,19 +194,31 @@ impl ReportEntry {
         }
     }
 
-    fn add_trade(&mut self, trade: &Trade) -> Result<()> {
-        if trade.area != self.area {
+    fn add_trade_from_parts(
+        &mut self,
+        area: Area,
+        trade_price: Option<Decimal>,
+        quantity_mwh: Decimal,
+        trade_type: TradeType,
+        delivery_start: &DateTime<FixedOffset>,
+        delivery_end: &DateTime<FixedOffset>,
+    ) -> Result<()> {
+        if area != self.area {
             bail!("Trade area has to match ReportEntry area");
         }
-        let Some(trade_price) = trade.price else {
+        let Some(trade_price) = trade_price else {
             return Ok(());
         };
 
-        let trade_side = trade.trade_side;
-        let market = Market::from(trade.trade_type);
-        let contract_length = contract_length(&trade.delivery_start, &trade.delivery_end)?;
+        let trade_side = if quantity_mwh < Decimal::ZERO {
+            TradeSide::Sell
+        } else {
+            TradeSide::Buy
+        };
+        let market = Market::from(trade_type);
+        let contract_length = contract_length(delivery_start, delivery_end)?;
 
-        let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
+        let abs_length_adjusted_quantity = quantity_mwh.abs() * contract_length;
 
         *self.mw.entry((trade_side, market)).or_insert(Decimal::ZERO) +=
             abs_length_adjusted_quantity;
@@ -218,33 +230,26 @@ impl ReportEntry {
         Ok(())
     }
 
+    fn add_trade(&mut self, trade: &Trade) -> Result<()> {
+        self.add_trade_from_parts(
+            trade.area,
+            trade.price,
+            trade.quantity_mwh,
+            trade.trade_type,
+            &trade.delivery_start,
+            &trade.delivery_end,
+        )
+    }
+
     fn add_trade_for_report(&mut self, trade: &TradeForReport) -> Result<()> {
-        // This and 'add_trade' should not be used at the same time
-        if trade.area != self.area {
-            bail!("Trade area has to match ReportEntry area");
-        }
-        let Some(trade_price) = trade.price else {
-            return Ok(());
-        };
-
-        let trade_side = if trade.quantity_mwh < Decimal::ZERO {
-            TradeSide::Sell
-        } else {
-            TradeSide::Buy
-        };
-        let market = Market::from(trade.trade_type);
-        let contract_length = contract_length(&trade.delivery_start, &trade.delivery_end)?;
-
-        let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
-
-        *self.mw.entry((trade_side, market)).or_insert(Decimal::ZERO) +=
-            abs_length_adjusted_quantity;
-        *self
-            .cash_flow
-            .entry((trade_side, market))
-            .or_insert(Decimal::ZERO) += abs_length_adjusted_quantity * trade_price;
-
-        Ok(())
+        self.add_trade_from_parts(
+            trade.area,
+            trade.price,
+            trade.quantity_mwh,
+            trade.trade_type,
+            &trade.delivery_start,
+            &trade.delivery_end,
+        )
     }
 
     fn revenue(&self, market: MarketSelection) -> Decimal {
