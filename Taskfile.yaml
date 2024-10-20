@@ -2,7 +2,7 @@ version: "3"
 
 env:
   SERVICE_NAME: "trading-results-rs"
-  DEV_LOCAL_TAG: "dev-env"
+  DEV_LOCAL_TAG: "dev-local"
 
 tasks:
   build-docker-local:
@@ -12,15 +12,16 @@ tasks:
   run-docker-local:
     deps: [build-docker-local]
     cmds:
-      - docker run --rm -t "$SERVICE_NAME:$DEV_LOCAL_TAG"
+      - docker run --network postgres_network --rm --env-file .env -t "$SERVICE_NAME:$DEV_LOCAL_TAG"
 
   run-docker-local-shell:
     cmds:
-      - docker run --rm -it --entrypoint /bin/bash "$SERVICE_NAME:$DEV_LOCAL_TAG"
+      - docker run --network postgres_network --rm --env-file .env -it --entrypoint /bin/bash "$SERVICE_NAME:$DEV_LOCAL_TAG"
 
   start-db:
     cmds:
-      - docker run --rm --name postgres -p 5432:5432 -e POSTGRES_DB=postgres -e POSTGRES_USER=superuser -e POSTGRES_PASSWORD=complicated postgres:15.7-alpine
+      - docker network create postgres_network
+      - docker run --rm --name postgres --network postgres_network -p 5432:5432 -e POSTGRES_DB=postgres -e POSTGRES_USER=superuser -e POSTGRES_PASSWORD=complicated postgres:15.7-alpine
 
   restore-db:
     cmds:

@@ -16,7 +16,7 @@ use trade::{AreaSelection, MarketSelection};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenvy::dotenv()?;
+    dotenvy::dotenv().expect("Could not load .env");
     let db_url = env::var("DATABASE_URL")?;
 
     println!("Initialising sqlx ...");

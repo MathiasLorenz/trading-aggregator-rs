@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM rust:1.81-slim-bookworm AS builder
+FROM rust:1.82-slim-bookworm AS builder
 
 # Create a new empty shell project
 WORKDIR /app
@@ -16,6 +16,11 @@ RUN rm src/*.rs
 # Copy your source tree
 COPY src ./src
 
+# Copy .sqlx for queries to be available
+COPY .sqlx ./.sqlx
+# Make sure we use the query cache in .sqlx
+ENV SQLX_OFFLINE=true
+
 # Build the project again with the actual source code
 RUN cargo build --release
 
@@ -28,6 +33,10 @@ WORKDIR /usr/local/bin
 
 # Copy the build artifact from the builder stage
 COPY --from=builder /app/trading-results-rs/target/release/trading-results-rs .
+
+# Create empty dotenv file as one is needed to run the program
+# Environment variables are passed when calling docker run instaed of this file
+RUN touch .env
 
 # Ensure the binary has execute permissions
 RUN chmod +x trading-results-rs
