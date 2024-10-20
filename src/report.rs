@@ -10,7 +10,9 @@ use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde::{Deserialize, Serialize};
 use sqlx::Error; // Should probably map/use anyhow::Error instead in the stream
 
-use crate::trade::{Area, AreaSelection, Market, MarketSelection, Trade, TradeSide};
+use crate::trade::{
+    Area, AreaSelection, Market, MarketSelection, Trade, TradeForReport, TradeSide,
+};
 
 #[derive(Debug)]
 pub struct Report {
@@ -37,6 +39,34 @@ impl Report {
                 .entry(area)
                 .or_insert(ReportEntry::new(area))
                 .add_trade(trade)?;
+        }
+
+        let report = Report {
+            _delivery_from: *delivery_from,
+            _delivery_to: *delivery_to,
+            areas,
+        };
+
+        Ok(report)
+    }
+
+    pub fn new_from_trade_for_report(
+        delivery_from: &DateTime<Tz>,
+        delivery_to: &DateTime<Tz>,
+        trades: Vec<TradeForReport>,
+    ) -> Result<Self> {
+        if delivery_to < delivery_from {
+            bail!("delivery_from has to be before delivery_to");
+        }
+
+        let mut areas = HashMap::new();
+
+        for trade in trades.iter() {
+            let area = trade.area;
+            areas
+                .entry(area)
+                .or_insert(ReportEntry::new(area))
+                .add_trade_for_report(trade)?;
         }
 
         let report = Report {
@@ -173,6 +203,35 @@ impl ReportEntry {
         };
 
         let trade_side = trade.trade_side;
+        let market = Market::from(trade.trade_type);
+        let contract_length = contract_length(&trade.delivery_start, &trade.delivery_end)?;
+
+        let abs_length_adjusted_quantity = trade.quantity_mwh.abs() * contract_length;
+
+        *self.mw.entry((trade_side, market)).or_insert(Decimal::ZERO) +=
+            abs_length_adjusted_quantity;
+        *self
+            .cash_flow
+            .entry((trade_side, market))
+            .or_insert(Decimal::ZERO) += abs_length_adjusted_quantity * trade_price;
+
+        Ok(())
+    }
+
+    fn add_trade_for_report(&mut self, trade: &TradeForReport) -> Result<()> {
+        // This and 'add_trade' should not be used at the same time
+        if trade.area != self.area {
+            bail!("Trade area has to match ReportEntry area");
+        }
+        let Some(trade_price) = trade.price else {
+            return Ok(());
+        };
+
+        let trade_side = if trade.quantity_mwh < Decimal::ZERO {
+            TradeSide::Sell
+        } else {
+            TradeSide::Buy
+        };
         let market = Market::from(trade.trade_type);
         let contract_length = contract_length(&trade.delivery_start, &trade.delivery_end)?;
 

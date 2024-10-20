@@ -5,7 +5,7 @@ use chrono_tz::Tz;
 use futures::{Stream, StreamExt};
 use sqlx::{postgres::PgPoolOptions, Error, PgPool};
 
-use crate::trade::Trade;
+use crate::trade::{Trade, TradeForReport};
 use anyhow::{Context, Result};
 
 pub async fn init_db_pool(db_url: &str) -> Result<PgPool> {
@@ -57,6 +57,52 @@ pub async fn get_trades(
     )
         .fetch_all(pool)
         .await?;
+    trades.extend(imbalance_trades);
+
+    Ok(trades)
+}
+
+pub async fn get_trades_for_report(
+    pool: &PgPool,
+    delivery_from: &DateTime<Tz>,
+    delivery_to: &DateTime<Tz>,
+) -> Result<Vec<TradeForReport>> {
+    let mut trades = sqlx::query_as!(
+        TradeForReport,
+        "
+    SELECT area, delivery_start, delivery_end, price, quantity_mwh, trade_type
+    FROM intraday_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let auction_trades = sqlx::query_as!(
+        TradeForReport,
+        "
+    SELECT area, delivery_start, delivery_end, price, quantity_mwh, trade_type
+    FROM auction_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
+    )
+    .fetch_all(pool)
+    .await?;
+    trades.extend(auction_trades);
+
+    let imbalance_trades = sqlx::query_as!(
+        TradeForReport,
+        "
+    SELECT area, delivery_start, delivery_end, price, quantity_mwh, trade_type
+    FROM imbalance_trades
+    WHERE delivery_start >= $1 AND delivery_start < $2",
+        delivery_from,
+        delivery_to,
+    )
+    .fetch_all(pool)
+    .await?;
     trades.extend(imbalance_trades);
 
     Ok(trades)

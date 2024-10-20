@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT area, delivery_start, delivery_end, price, quantity_mwh, trade_type\n    FROM auction_trades\n    WHERE delivery_start >= $1 AND delivery_start < $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "area",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "delivery_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "delivery_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity_mwh",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "trade_type",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "32c8c7adf1f0513b52236a2d3941dcd92b1531d1013ec166dbeda7531be969c1"
+}

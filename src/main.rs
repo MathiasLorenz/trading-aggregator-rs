@@ -8,7 +8,7 @@ mod trade;
 use anyhow::Result;
 use chrono::prelude::*;
 use chrono_tz::{Europe::Copenhagen, Tz};
-use db::{get_trades, get_trades_stream, init_db_pool};
+use db::{get_trades, get_trades_for_report, get_trades_stream, init_db_pool};
 use report::Report;
 use sqlx::PgPool;
 use tokio::task;
@@ -37,6 +37,13 @@ async fn main() -> Result<()> {
     println!("Create report, standard");
     let now = Instant::now();
     let report = create_report(&pool, delivery_from, delivery_to).await?;
+    report.print_key_metrics();
+    println!("Generating report, standard, took: {:.2?}", now.elapsed());
+    println!();
+
+    println!("Create report, simple trade structure (TradeForReport)");
+    let now = Instant::now();
+    let report = create_report_from_simple_trade(&pool, delivery_from, delivery_to).await?;
     report.print_key_metrics();
     println!("Generating report, standard, took: {:.2?}", now.elapsed());
     println!();
@@ -70,6 +77,31 @@ async fn create_report(
     let now = Instant::now();
     let report =
         task::spawn_blocking(move || Report::new(&delivery_from, &delivery_to, trades)).await??;
+    println!("Report part took: {:.2?}", now.elapsed());
+
+    Ok(report)
+}
+
+async fn create_report_from_simple_trade(
+    pool: &PgPool,
+    delivery_from: DateTime<Tz>,
+    delivery_to: DateTime<Tz>,
+) -> Result<Report> {
+    println!("Delivery from: {:#?}", delivery_from);
+    println!("Delivery to: {:#?}", delivery_to);
+
+    println!("Getting from db");
+
+    let now = Instant::now();
+    let trades_for_report = get_trades_for_report(pool, &delivery_from, &delivery_to).await?;
+    let elapsed = now.elapsed();
+    println!("Getting trades took: {:.2?}", elapsed);
+
+    let now = Instant::now();
+    let report = task::spawn_blocking(move || {
+        Report::new_from_trade_for_report(&delivery_from, &delivery_to, trades_for_report)
+    })
+    .await??;
     println!("Report part took: {:.2?}", now.elapsed());
 
     Ok(report)

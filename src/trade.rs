@@ -145,3 +145,14 @@ pub struct Trade {
     #[serde(rename = "type")]
     pub trade_type: TradeType,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TradeForReport {
+    pub area: Area,
+    pub delivery_end: DateTime<FixedOffset>,
+    pub delivery_start: DateTime<FixedOffset>,
+    pub price: Option<Decimal>,
+    pub quantity_mwh: Decimal,
+    #[serde(rename = "type")]
+    pub trade_type: TradeType,
+}

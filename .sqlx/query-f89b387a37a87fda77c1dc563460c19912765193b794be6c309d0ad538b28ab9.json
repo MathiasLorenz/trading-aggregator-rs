@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT area, delivery_start, delivery_end, price, quantity_mwh, trade_type\n    FROM intraday_trades\n    WHERE delivery_start >= $1 AND delivery_start < $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "area",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "delivery_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "delivery_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity_mwh",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "trade_type",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f89b387a37a87fda77c1dc563460c19912765193b794be6c309d0ad538b28ab9"
+}

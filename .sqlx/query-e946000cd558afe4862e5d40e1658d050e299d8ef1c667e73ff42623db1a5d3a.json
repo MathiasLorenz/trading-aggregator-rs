@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT area, delivery_start, delivery_end, price, quantity_mwh, trade_type\n    FROM imbalance_trades\n    WHERE delivery_start >= $1 AND delivery_start < $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "area",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "delivery_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "delivery_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity_mwh",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "trade_type",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e946000cd558afe4862e5d40e1658d050e299d8ef1c667e73ff42623db1a5d3a"
+}
