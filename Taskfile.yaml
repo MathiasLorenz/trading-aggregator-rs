@@ -24,7 +24,7 @@ tasks:
 
   restore-db:
     cmds:
-      - pg_restore --no-owner -h localhost -U superuser -d postgres db-dumps/trading-results-prod-2024-10-15.dump
+      - pg_restore --no-owner -h localhost -U superuser -d postgres {{.CLI_ARGS}}
 
   psql-shell:
     cmds:
