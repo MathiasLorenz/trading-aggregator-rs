@@ -1,4 +1,4 @@
-# trading-results-rs
+# trading-aggregator-rs
 
 Proof-of-concept of aggregating some financial measures in Rust :happy-crustacian:
 
