@@ -72,6 +72,7 @@ async fn create_report(
     println!("Getting trades took: {:.2?}", elapsed);
 
     let now = Instant::now();
+    // In an async-sense, this is a compute heavy task, so we spawn it in a blocking thread
     let report =
         task::spawn_blocking(move || Report::new(&delivery_from, &delivery_to, trades)).await??;
     println!("Report part took: {:.2?}", now.elapsed());
@@ -92,6 +93,7 @@ async fn create_report_from_simple_trade(
     println!("Getting trades took: {:.2?}", elapsed);
 
     let now = Instant::now();
+    // In an async-sense, this is a compute heavy task, so we spawn it in a blocking thread
     let report = task::spawn_blocking(move || {
         Report::new_from_trade_for_report(&delivery_from, &delivery_to, trades_for_report)
     })
