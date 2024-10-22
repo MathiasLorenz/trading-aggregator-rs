@@ -64,9 +64,6 @@ async fn create_report(
     delivery_from: DateTime<Tz>,
     delivery_to: DateTime<Tz>,
 ) -> Result<Report> {
-    println!("Delivery from: {:#?}", delivery_from);
-    println!("Delivery to: {:#?}", delivery_to);
-
     println!("Getting from db");
 
     let now = Instant::now();
@@ -87,9 +84,6 @@ async fn create_report_from_simple_trade(
     delivery_from: DateTime<Tz>,
     delivery_to: DateTime<Tz>,
 ) -> Result<Report> {
-    println!("Delivery from: {:#?}", delivery_from);
-    println!("Delivery to: {:#?}", delivery_to);
-
     println!("Getting from db");
 
     let now = Instant::now();
@@ -112,9 +106,6 @@ async fn create_report_stream(
     delivery_from: DateTime<Tz>,
     delivery_to: DateTime<Tz>,
 ) -> Result<Report> {
-    println!("Delivery from: {:#?}", delivery_from);
-    println!("Delivery to: {:#?}", delivery_to);
-
     let trades_stream = get_trades_stream(pool, &delivery_from, &delivery_to);
 
     let now = Instant::now();
