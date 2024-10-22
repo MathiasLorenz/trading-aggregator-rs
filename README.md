@@ -2,7 +2,11 @@
 
 Proof-of-concept of aggregating some financial measures in Rust :happy-crustacian:
 
-The project uses [sqlx](https://github.com/launchbadge/sqlx) for database connections.
+The project uses
+
+- [sqlx](https://docs.rs/sqlx/latest/sqlx/) for database connections
+- [chrono](https://docs.rs/chrono/latest/chrono/) and [chrono-tz](https://docs.rs/chrono-tz/latest/chrono_tz/) timestamps and timezones
+- [rust_decimal](https://docs.rs/rust_decimal/latest/rust_decimal/) for decimals for no-roundoff errors math when necessary
 
 Database is restored from a dump and should be running as a local Docker instance of Postgres -
 convinience functions are provided in the [Taskfile.yaml](Taskfile.yaml).
