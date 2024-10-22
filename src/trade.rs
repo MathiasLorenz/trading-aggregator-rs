@@ -140,9 +140,7 @@ pub struct Trade {
     pub delivery_start: DateTime<FixedOffset>,
     pub price: Option<Decimal>,
     pub quantity_mwh: Decimal,
-    #[serde(rename = "side")]
     pub trade_side: TradeSide,
-    #[serde(rename = "type")]
     pub trade_type: TradeType,
 }
 
@@ -153,6 +151,5 @@ pub struct TradeForReport {
     pub delivery_start: DateTime<FixedOffset>,
     pub price: Option<Decimal>,
     pub quantity_mwh: Decimal,
-    #[serde(rename = "type")]
     pub trade_type: TradeType,
 }
