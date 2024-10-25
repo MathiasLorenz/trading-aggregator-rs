@@ -108,12 +108,12 @@ pub async fn get_trades_for_report(
     Ok(trades)
 }
 
-pub fn get_trades_stream<'a>(
+pub fn get_intraday_trades_stream<'a>(
     pool: &'a PgPool,
     delivery_from: &'a DateTime<Tz>,
     delivery_to: &'a DateTime<Tz>,
 ) -> Pin<Box<dyn Stream<Item = Result<Trade, Error>> + Send + 'a>> {
-    let intraday_trades = sqlx::query_as!(
+    sqlx::query_as!(
         Trade,
         "
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
@@ -122,9 +122,15 @@ pub fn get_trades_stream<'a>(
         delivery_from,
         delivery_to,
     )
-        .fetch(pool);
+        .fetch(pool)
+}
 
-    let auction_trades = sqlx::query_as!(
+pub fn get_auction_trades_stream<'a>(
+    pool: &'a PgPool,
+    delivery_from: &'a DateTime<Tz>,
+    delivery_to: &'a DateTime<Tz>,
+) -> Pin<Box<dyn Stream<Item = Result<Trade, Error>> + Send + 'a>> {
+    sqlx::query_as!(
         Trade,
         "
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
@@ -133,9 +139,15 @@ pub fn get_trades_stream<'a>(
         delivery_from,
         delivery_to,
     )
-        .fetch(pool);
+        .fetch(pool)
+}
 
-    let imbalance_trades = sqlx::query_as!(
+pub fn get_imbalance_trades_stream<'a>(
+    pool: &'a PgPool,
+    delivery_from: &'a DateTime<Tz>,
+    delivery_to: &'a DateTime<Tz>,
+) -> Pin<Box<dyn Stream<Item = Result<Trade, Error>> + Send + 'a>> {
+    sqlx::query_as!(
         Trade,
         "
     SELECT id, area, counter_part, delivery_start, delivery_end, price, quantity_mwh, trade_side, trade_type
@@ -144,7 +156,17 @@ pub fn get_trades_stream<'a>(
         delivery_from,
         delivery_to,
     )
-        .fetch(pool);
+        .fetch(pool)
+}
+
+pub fn get_trades_stream<'a>(
+    pool: &'a PgPool,
+    delivery_from: &'a DateTime<Tz>,
+    delivery_to: &'a DateTime<Tz>,
+) -> Pin<Box<dyn Stream<Item = Result<Trade, Error>> + Send + 'a>> {
+    let intraday_trades = get_intraday_trades_stream(pool, delivery_from, delivery_to);
+    let auction_trades = get_auction_trades_stream(pool, delivery_from, delivery_to);
+    let imbalance_trades = get_imbalance_trades_stream(pool, delivery_from, delivery_to);
 
     Box::pin(
         intraday_trades
