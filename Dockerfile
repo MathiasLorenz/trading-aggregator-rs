@@ -3,8 +3,8 @@ FROM rust:1.82-slim-bookworm AS builder
 
 # Create a new empty shell project
 WORKDIR /app
-RUN USER=root cargo new --bin trading-results-rs
-WORKDIR /app/trading-results-rs
+RUN USER=root cargo new --bin trading-aggregator-rs
+WORKDIR /app/trading-aggregator-rs
 
 # Copy over the Cargo.toml and Cargo.lock files
 COPY Cargo.toml Cargo.lock ./
@@ -32,14 +32,14 @@ FROM debian:bookworm-slim AS runner
 WORKDIR /usr/local/bin
 
 # Copy the build artifact from the builder stage
-COPY --from=builder /app/trading-results-rs/target/release/trading-results-rs .
+COPY --from=builder /app/trading-aggregator-rs/target/release/trading-aggregator-rs .
 
 # Create empty dotenv file as one is needed to run the program
 # Environment variables are passed when calling docker run instaed of this file
 RUN touch .env
 
 # Ensure the binary has execute permissions
-RUN chmod +x trading-results-rs
+RUN chmod +x trading-aggregator-rs
 
 # Set the startup command to run your binary
-CMD ["./trading-results-rs"]
+CMD ["./trading-aggregator-rs"]

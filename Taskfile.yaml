@@ -1,7 +1,7 @@
 version: "3"
 
 env:
-  SERVICE_NAME: "trading-results-rs"
+  SERVICE_NAME: "trading-aggregator-rs"
   DEV_LOCAL_TAG: "dev-local"
 
 tasks:
@@ -12,7 +12,7 @@ tasks:
   run-docker-local:
     deps: [build-docker-local]
     cmds:
-      - docker run --network postgres_network --rm --env-file .env -t "$SERVICE_NAME:$DEV_LOCAL_TAG"
+      - docker run --rm --env-file .env -t "$SERVICE_NAME:$DEV_LOCAL_TAG"
 
   run-docker-local-shell:
     cmds:
