@@ -20,6 +20,7 @@ tasks:
 
   start-db:
     cmds:
+      - docker network rm postgres_network
       - docker network create postgres_network
       - docker run --rm --name postgres --network postgres_network -p 5432:5432 -e POSTGRES_DB=postgres -e POSTGRES_USER=superuser -e POSTGRES_PASSWORD=complicated postgres:15.7-alpine
 
